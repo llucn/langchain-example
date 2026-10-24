@@ -1,0 +1,2398 @@
+/*
+ * TechConnect Design System — Theme Tokens
+ *
+ * Modeled after Delta POC CTO (TurnoverOps) UI. See:
+ *   - Reference: /tmp/delta_poc-cto/apps/web/src/styles/variables.css
+ *   - Memory: reference_delta_ui.md
+ *
+ * DM Sans (body) + Syne (display) + DM Mono (data).
+ * Sky blue accent (#0ea5e9 dark / #0284c7 light).
+ * Card-based, 14px radius, pill badges, subtle borders.
+ */
+
+/* Fonts (DM Sans / Syne / DM Mono / Inter) are loaded via <link> tags in the
+   consuming app's index.html — not @import here — so Tailwind's layer
+   reordering can't drop them (an @import must precede all other rules). */
+/* TechConnect Legacy tokens — Stanford Cardinal brand-first.
+   See design.md D5 (palette source of truth). */
+@import './tokens/techconnect.css';
+
+/* ============================================
+   DEFAULT — Dark (Delta tokens)
+   ============================================ */
+/* ============================================
+   GLOBAL — Accessibility: font scaling
+   ============================================
+   Root font-size is set dynamically by ThemeProvider (JS) based on
+   the user's in-app font scale preference. The CSS default below is
+   only a fallback before JS hydrates. All component font sizes use
+   rem so they scale proportionally.
+   ============================================ */
+
+:root,
+[data-theme="default"] {
+  /* Delta-native tokens */
+  --bg:           #0b1120;
+  --surface:      #111827;
+  --surface2:     #16202f;
+  --card:         #16202f;
+  --card2:        #1c2b3a;
+  --card-head-bg: rgba(255, 255, 255, 0.02);
+
+  --border:       rgba(255, 255, 255, 0.07);
+  --border-hi:    rgba(255, 255, 255, 0.13);
+
+  /* Interaction accent — sky blue. Used for selected state, focus, links,
+     primary CTAs. Distinct from semantic --red/--green/--amber so interactive
+     surfaces don't read as alarms. */
+  --accent:       #0ea5e9;
+  --accent-hover: #0284c7;
+  --accent-dim:   rgba(14, 165, 233, 0.14);
+  --accent-text:  #fff;
+
+  /* Brand identity — Stanford Cardinal. Reserved for identity surfaces
+     (logos, marketing copy, heritage/branded chrome). Never use for data
+     or state indicators. */
+  --brand:        #E63946;
+  --brand-hover:  #C42A37;
+  --brand-dim:    rgba(230, 57, 70, 0.14);
+
+  --hover-subtle: rgba(255, 255, 255, 0.04);
+  --hover:        rgba(255, 255, 255, 0.03);
+  --hover-hi:     rgba(255, 255, 255, 0.06);
+  --overlay:      rgba(0, 0, 0, 0.6);
+
+  /* Status colors — lifted for WCAG 2.1 AA contrast on card backgrounds
+     (all pass 4.5:1 on badge-dim over --card / --card2). */
+  --blue:         #60a5fa;
+  --blue-hover:   #3b82f6;
+  --blue-dim:     rgba(96, 165, 250, 0.16);
+  --blue-mid:     rgba(96, 165, 250, 0.22);
+
+  --green:        #34d399;
+  --green-dim:    rgba(52, 211, 153, 0.14);
+
+  --red:          #f87171;
+  --red-dim:      rgba(248, 113, 113, 0.14);
+
+  --amber:        #fbbf24;
+  --amber-dim:    rgba(251, 191, 36, 0.14);
+
+  --purple:       #a78bfa;
+  --purple-dim:   rgba(167, 139, 250, 0.14);
+
+  --cyan:         #22d3ee;
+  --cyan-dim:     rgba(34, 211, 238, 0.14);
+
+  --gray:         #94a3b8;
+  --gray-dim:     rgba(148, 163, 184, 0.12);
+
+  --text:         #e2e8f0;
+  --text2:        #cbd5e1;
+  /* --muted bumped to clear 4.5:1 on --card (#16202f) — was #64748b */
+  --muted:        #94a3b8;
+  --muted2:       #cbd5e1;
+
+  /* Text size scale — rem-based so they scale with root font size (user font-scale preference).
+     Base root = 14px. The in-app slider (0.85x–1.5x) adjusts document.documentElement.style.fontSize. */
+  --tc-text-xs:   0.6875rem;  /* ~11px at default */
+  --tc-text-sm:   0.75rem;    /* ~12px */
+  --tc-text-base: 0.8125rem;  /* ~13px */
+  --tc-text-md:   0.875rem;   /* ~14px */
+  --tc-text-lg:   1.125rem;   /* ~18px */
+  --tc-text-xl:   1.375rem;   /* ~22px */
+  --tc-text-2xl:  1.75rem;    /* ~28px */
+  --tc-text-3xl:  2.25rem;    /* ~36px */
+
+  --sidebar-w:    220px;
+  --topbar-h:     4.286rem;
+
+  --radius-sm:    6px;
+  --radius:       10px;
+  --radius-lg:    14px;
+
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow:       0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.5);
+
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  --font-display: 'Syne', 'DM Sans', system-ui, sans-serif;
+
+  --transition-fast: 0.13s ease;
+  --transition:      0.2s ease;
+  --transition-slow: 0.35s ease;
+
+  color-scheme: dark;
+
+  /* ==========================================
+     LEGACY --tc-* BRIDGE — maps Delta tokens into
+     the TC variable names used by existing components.
+     Every page already references these, so this
+     single bridge migrates the entire app in one pass.
+     ========================================== */
+
+  /* Brand */
+  --tc-brand-primary:       var(--accent);
+  --tc-brand-primary-hover: var(--accent-hover);
+  --tc-brand-secondary:     var(--purple);
+
+  /* Surfaces */
+  --tc-bg-page:        var(--bg);
+  --tc-bg-card:        var(--card);
+  --tc-bg-card-hover:  var(--card2);
+  --tc-bg-elevated:    var(--surface);
+  --tc-bg-inset:       var(--card2);
+  --tc-bg-overlay:     var(--overlay);
+
+  /* Text */
+  --tc-text-primary:   var(--text);
+  --tc-text-secondary: var(--text2);
+  --tc-text-muted:     var(--muted);
+  --tc-text-inverse:   var(--accent-text);
+  --tc-text-link:      var(--accent);
+
+  /* Borders */
+  --tc-border-default: var(--border);
+  --tc-border-strong:  var(--border-hi);
+  --tc-border-focus:   var(--accent);
+
+  /* Status */
+  --tc-status-open:          var(--blue);
+  --tc-status-open-bg:        var(--blue-dim);
+  --tc-status-assigned:       var(--purple);
+  --tc-status-assigned-bg:    var(--purple-dim);
+  --tc-status-in-progress:    var(--amber);
+  --tc-status-in-progress-bg: var(--amber-dim);
+  --tc-status-on-hold:        var(--gray);
+  --tc-status-on-hold-bg:     var(--gray-dim);
+  --tc-status-completed:      var(--green);
+  --tc-status-completed-bg:   var(--green-dim);
+  --tc-status-closed:         var(--muted2);
+  --tc-status-closed-bg:      var(--gray-dim);
+  --tc-status-cancelled:      var(--red);
+  --tc-status-cancelled-bg:   var(--red-dim);
+
+  /* Priority */
+  --tc-priority-emergency:    var(--red);
+  --tc-priority-emergency-bg: var(--red-dim);
+  --tc-priority-urgent:       #f97316;
+  --tc-priority-urgent-bg:    rgba(249, 115, 22, 0.12);
+  --tc-priority-high:         var(--amber);
+  --tc-priority-high-bg:      var(--amber-dim);
+  --tc-priority-medium:       var(--blue);
+  --tc-priority-medium-bg:    var(--blue-dim);
+  --tc-priority-low:          var(--gray);
+  --tc-priority-low-bg:       var(--gray-dim);
+
+  /* Severity */
+  --tc-severity-critical: var(--red);
+  --tc-severity-warning:  var(--amber);
+  --tc-severity-info:     var(--accent);
+
+  /* Notification tiers */
+  --tc-notify-critical:    var(--red);
+  --tc-notify-critical-bg: var(--red-dim);
+  --tc-notify-important:   var(--amber);
+  --tc-notify-important-bg: var(--amber-dim);
+  --tc-notify-info:        var(--accent);
+  --tc-notify-info-bg:     var(--accent-dim);
+
+  /* Spacing */
+  --tc-space-1: 0.25rem;
+  --tc-space-2: 0.5rem;
+  --tc-space-3: 0.75rem;
+  --tc-space-4: 1rem;
+  --tc-space-5: 1.25rem;
+  --tc-space-6: 1.5rem;
+  --tc-space-8: 2rem;
+  --tc-space-10: 2.5rem;
+  --tc-space-12: 3rem;
+  --tc-space-14: 3.5rem;
+  --tc-space-16: 4rem;
+
+  --tc-touch-min: 2.5rem;
+
+  /* Typography scale — redundant set removed; canonical scale is above (lines 95-103) */
+
+  /* Fonts */
+  --tc-font-sans:    var(--font-body);
+  --tc-font-display: var(--font-display);
+  --tc-font-mono:    var(--font-mono);
+
+  /* Radii */
+  --tc-radius-sm:   var(--radius-sm);
+  --tc-radius-md:   8px;
+  --tc-radius-lg:   var(--radius);
+  --tc-radius-xl:   var(--radius-lg);
+  --tc-radius-full: 9999px;
+
+  /* Shadows */
+  --tc-shadow-sm: var(--shadow-sm);
+  --tc-shadow-md: var(--shadow);
+  --tc-shadow-lg: var(--shadow-lg);
+
+  /* Z-index */
+  --tc-z-dropdown: 50;
+  --tc-z-sticky:   100;
+  --tc-z-modal:    200;
+  --tc-z-toast:    300;
+  --tc-z-tooltip:  400;
+}
+
+/* ============================================
+   LIGHT THEME (Delta tokens)
+   ============================================ */
+[data-theme="light"] {
+  --bg:           #F4F6F9;
+  --surface:      #FFFFFF;
+  --surface2:     #F9FAFB;
+  --card:         #FFFFFF;
+  --card2:        #F9FAFB;
+  --card-head-bg: #F9FAFB;
+
+  --border:       #E5E8ED;
+  --border-hi:    #CBD2DA;
+
+  /* Interaction accent — sky blue. Used for selected state, focus, links,
+     primary CTAs. Separated from brand so data surfaces don't read as alarms. */
+  --accent:       #0284c7;
+  --accent-hover: #0369a1;
+  --accent-dim:   rgba(2, 132, 199, 0.10);
+  --accent-text:  #fff;
+
+  /* Brand identity — Stanford Cardinal #8C1515. Contrast 7.4:1 on white.
+     Reserved for identity surfaces. Never use for data or state indicators. */
+  --brand:        #8C1515;
+  --brand-hover:  #6C0F0F;
+  --brand-dim:    rgba(140, 21, 21, 0.08);
+
+  --hover-subtle: rgba(0, 0, 0, 0.03);
+  --hover:        rgba(0, 0, 0, 0.02);
+  --hover-hi:     rgba(0, 0, 0, 0.05);
+  --overlay:      rgba(0, 0, 0, 0.3);
+
+  --blue:         #1B5EF7;
+  --blue-hover:   #1449CC;
+  --blue-dim:     rgba(27, 94, 247, 0.08);
+  --blue-mid:     rgba(27, 94, 247, 0.14);
+
+  --green:        #12A05C;
+  --green-dim:    rgba(18, 160, 92, 0.10);
+
+  --red:          #E03940;
+  --red-dim:      rgba(224, 57, 64, 0.08);
+
+  --amber:        #D97706;
+  --amber-dim:    rgba(217, 119, 6, 0.09);
+
+  --purple:       #6D3FD1;
+  --purple-dim:   rgba(109, 63, 209, 0.09);
+
+  --cyan:         #0891b2;
+  --cyan-dim:     rgba(8, 145, 178, 0.09);
+
+  --gray:         #6b7280;
+  --gray-dim:    rgba(107, 114, 128, 0.09);
+
+  --text:         #111827;
+  --text2:        #374151;
+  --muted:        #6B7280;
+  --muted2:       #9CA3AF;
+
+  --sidebar-w:    232px;
+  --topbar-h:     4rem;
+
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow:       0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-lg:    0 4px 16px rgba(0, 0, 0, 0.08);
+
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', system-ui, sans-serif;
+
+  color-scheme: light;
+}
+
+/* ============================================
+   HIGH-CONTRAST — OLED true-black
+   ============================================ */
+[data-theme="high-contrast"] {
+  --bg:           #000000;
+  --surface:      #050505;
+  --surface2:     #0a0a0a;
+  --card:         #0a0a0a;
+  --card2:        #141414;
+  --card-head-bg: rgba(255, 255, 255, 0.03);
+
+  --border:       rgba(255, 255, 255, 0.15);
+  --border-hi:    rgba(255, 255, 255, 0.25);
+
+  --accent:       #5eead4;
+  --accent-hover: #2dd4bf;
+  --accent-dim:   rgba(94, 234, 212, 0.15);
+  --accent-text:  #000;
+
+  --brand:        #ff6b6b;
+  --brand-hover:  #f05252;
+  --brand-dim:    rgba(255, 107, 107, 0.15);
+
+  --text:         #ffffff;
+  --text2:        #e5e5e5;
+  --muted:        #a0a0a0;
+  --muted2:       #c0c0c0;
+
+  color-scheme: dark;
+}
+
+/* ============================================
+   SUNLIGHT — outdoor max contrast
+   ============================================ */
+[data-theme="sunlight"] {
+  --bg:           #FFFFFF;
+  --surface:      #F8F8F8;
+  --surface2:     #F0F0F0;
+  --card:         #FFFFFF;
+  --card2:        #F0F0F0;
+  --card-head-bg: #F0F0F0;
+
+  --border:       #999999;
+  --border-hi:    #666666;
+
+  --accent:       #1D4ED8;
+  --accent-hover: #1E40AF;
+  --accent-dim:   rgba(29, 78, 216, 0.15);
+  --accent-text:  #fff;
+
+  --brand:        #8C1515;
+  --brand-hover:  #6C0F0F;
+  --brand-dim:    rgba(140, 21, 21, 0.10);
+
+  --text:         #000000;
+  --text2:        #1a1a1a;
+  --muted:        #555555;
+  --muted2:       #333333;
+
+  color-scheme: light;
+}
+
+/* ============================================
+   SIMPLIFIED MODE
+   ============================================ */
+[data-simplified="true"] {
+  --tc-touch-min: 3.5rem;
+  --tc-space-4:   1.25rem;
+  --tc-space-6:   2rem;
+}
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-body);
+  /* Root size driven by --tc-root-font-size custom property. ThemeProvider JS
+     sets this variable (instead of an inline font-size) so it works reliably
+     in both Vite dev mode and production builds. Default: 14px. */
+  font-size: var(--tc-root-font-size, 14px);
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  line-height: 1.5;
+  /* Lock the horizontal axis: mobile pages must not pan/scroll sideways. */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  /* Mirror the lock on body so iOS Safari can't rubber-band horizontally. */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* Defensive: anything that tries to extend past the viewport should clip
+   inside the AppLayout shell rather than push the body wider. */
+#root {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: 2.000rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0;
+}
+h2 {
+  font-family: var(--font-display);
+  font-size: 1.571rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  margin: 0;
+}
+h3 {
+  font-family: var(--font-body);
+  font-size: 1.214rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+}
+h4 { font-size: 1.071rem; font-weight: 600; margin: 0; }
+h5 { font-size: 0.929rem; font-weight: 600; margin: 0; }
+h6 {
+  font-size: 0.857rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin: 0;
+}
+
+code, pre, .font-mono, kbd, samp {
+  font-family: var(--font-mono);
+  font-feature-settings: "liga" 1, "calt" 1;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  border-radius: var(--radius-sm);
+}
+:focus:not(:focus-visible) { outline: none; }
+
+::selection {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
+
+/* ============================================
+   DELTA UTILITIES
+   ============================================ */
+
+/* .btn family — WCAG 2.1 AA: min 3.143rem touch target */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 3.143rem;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 0.929rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+.btn svg { flex-shrink: 0; }
+.btn-primary   { background: var(--accent); color: var(--accent-text); }
+.btn-primary:hover   { background: var(--accent-hover); transform: translateY(-1px); }
+.btn-secondary { background: var(--blue); color: #fff; }
+.btn-secondary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-ghost     { background: transparent; color: var(--muted2); border: 1px solid var(--border); }
+.btn-ghost:hover     { color: var(--text); background: var(--hover-subtle); border-color: var(--border-hi); }
+.btn-danger    { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+.btn-danger:hover    { background: var(--red); color: #fff; }
+.btn-outline   { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover   { background: var(--hover-subtle); border-color: var(--accent); color: var(--accent); }
+.btn-icon      { padding: 0; min-width: 3.143rem; min-height: 3.143rem; width: 3.143rem; height: 3.143rem; border-radius: 8px; justify-content: center; }
+.btn:disabled  { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* .badge family */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.857rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-green   { color: var(--green);   background: var(--green-dim); }
+.badge-blue    { color: var(--blue);    background: var(--blue-dim); }
+.badge-red     { color: var(--red);     background: var(--red-dim); }
+.badge-amber   { color: var(--amber);   background: var(--amber-dim); }
+.badge-purple  { color: var(--purple);  background: var(--purple-dim); }
+.badge-gray    { color: var(--muted2);  background: var(--gray-dim); }
+.badge-cyan    { color: var(--cyan);    background: var(--cyan-dim); }
+.badge-default { color: var(--muted2);  background: var(--card2); }
+
+/* .card family */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  animation: fadeUp 0.35s ease both;
+}
+.card:nth-child(1) { animation-delay: 0.04s; }
+.card:nth-child(2) { animation-delay: 0.08s; }
+.card:nth-child(3) { animation-delay: 0.12s; }
+.card:nth-child(4) { animation-delay: 0.16s; }
+
+.card-head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-head-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-head-title {
+  font-size: 0.929rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+}
+.card-head-subtitle {
+  font-size: 0.857rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.card-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-body { padding: 16px 20px; }
+
+/* .form-group */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 0.857rem;
+  font-weight: 600;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1.000rem;
+  font-family: var(--font-body);
+  transition: all 0.15s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* ============================================
+   SIDEBAR — Delta styles
+   ============================================ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: width 0.25s ease;
+}
+.sidebar::-webkit-scrollbar { width: 0; }
+
+.sidebar-logo {
+  height: var(--topbar-h);
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.sidebar-logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent-text);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.929rem;
+  letter-spacing: -0.02em;
+}
+.sidebar-logo-text { line-height: 1.2; min-width: 0; overflow: hidden; }
+.sidebar-logo-text .t1 {
+  font-family: var(--font-display);
+  font-size: 1.000rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.08em;
+}
+.sidebar-logo-text .t2 {
+  font-family: var(--font-display);
+  font-size: 0.857rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.sidebar-nav {
+  padding: 10px 0;
+  flex: 1;
+  overflow-y: auto;
+}
+.sidebar-section {
+  padding: 14px 18px 4px;
+  font-size: 0.714rem;
+  color: var(--muted);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+button.nav-item,
+a.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  color: var(--muted);
+  cursor: pointer;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 2px solid transparent;
+  background: transparent;
+  transition: all 0.15s;
+  font-size: 0.929rem;
+  font-weight: 500;
+  font-family: var(--font-body);
+  user-select: none;
+  text-align: left;
+  width: 100%;
+  text-decoration: none;
+}
+.nav-item:hover {
+  color: var(--text);
+  background: var(--hover-subtle);
+}
+.nav-item.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-dim);
+}
+.nav-item svg { flex-shrink: 0; opacity: 0.75; }
+.nav-item.active svg { opacity: 1; }
+
+.nav-item.collapsed {
+  padding: 9px 0;
+  justify-content: center;
+  border-left-width: 0;
+}
+
+.nav-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.714rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+}
+
+.sidebar-bottom {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-collapse-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.857rem;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: var(--font-body);
+}
+.sidebar-collapse-btn:hover { color: var(--text); }
+
+/* ============================================
+   TOPBAR — Delta styles
+   ============================================ */
+.topbar {
+  /* Pinned to the top so iOS Safari URL-bar hide/show doesn't scroll it away.
+     Honors the safe-area-inset-top so the bar clears the notch / status bar. */
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding-left: 24px;
+  padding-right: 24px;
+  gap: 12px;
+  flex-shrink: 0;
+  /* Subtle backdrop blur so content scrolling underneath stays legible. */
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+}
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.topbar-breadcrumb {
+  font-size: 0.929rem;
+  color: var(--muted);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-body);
+  transition: color 0.15s;
+}
+.topbar-breadcrumb:hover { color: var(--accent); }
+.topbar-breadcrumb-sep {
+  font-size: 0.929rem;
+  color: var(--muted);
+  opacity: 0.5;
+}
+.topbar-page-title {
+  font-size: 1.071rem;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-avatar {
+  width: 2.429rem;
+  height: 2.429rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.857rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  padding: 0;
+}
+.avatar-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  min-width: 15.714rem;
+  z-index: 300;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: fadeDown 0.15s ease both;
+}
+.avatar-dropdown-info {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.avatar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 0.929rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.1s;
+  text-align: left;
+}
+.avatar-dropdown-item:hover { background: var(--hover-subtle); }
+
+/* Notifications bell — relative so its badge can absolutely position. */
+.topbar-bell { position: relative; }
+.topbar-bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--red, #ef4444);
+  color: #ffffff;
+  font-size: 0.643rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 16px;
+  text-align: center;
+  border-radius: 8px;
+  border: 2px solid var(--surface);
+  box-sizing: content-box;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+
+/* Mobile: tighten topbar so title + bell + theme + avatar fit comfortably. */
+@media (max-width: 768px) {
+  .topbar {
+    /* Keep the safe-area top inset; only override the horizontal padding. */
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 8px;
+  }
+  .topbar-actions { gap: 4px; }
+  .topbar-page-title { font-size: 1.000rem; }
+}
+
+/* ============================================================
+   TIMECARDS — engineering-ledger redesign
+   ============================================================
+   Aesthetic: a worker's tactile field notebook. Faint ledger-paper
+   grid in the background, mono numbers as the typographic hero,
+   Cardinal red as ink. Generous padding, gloved-hand touch targets.
+   ============================================================ */
+
+.tc-page {
+  --tc-grid-color: color-mix(in srgb, var(--text) 4%, transparent);
+  --tc-rule: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-bottom: 96px; /* clear the FAB + tabbar */
+  position: relative;
+  /* Faint ruled-paper background. Two layers: 24px horizontal lines
+     + 8px vertical "margin" tick on the left for ledger flavor. */
+  background-image:
+    linear-gradient(to bottom, transparent 23px, var(--tc-grid-color) 24px),
+    linear-gradient(
+      to right,
+      transparent calc(40px - 1px),
+      color-mix(in srgb, var(--accent) 22%, transparent) 40px,
+      transparent calc(40px + 1px)
+    );
+  background-size: 100% 24px, 100% 100%;
+}
+@media (max-width: 768px) {
+  .tc-page {
+    background-image:
+      linear-gradient(to bottom, transparent 23px, var(--tc-grid-color) 24px),
+      linear-gradient(
+        to right,
+        transparent calc(20px - 1px),
+        color-mix(in srgb, var(--accent) 22%, transparent) 20px,
+        transparent calc(20px + 1px)
+      );
+  }
+}
+
+/* --- Page header --------------------------------------------- */
+.tc-pageheader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 4px 0;
+}
+.tc-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.tc-pagetitle {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--font-display, var(--font-body));
+  font-size: 1.714rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.tc-pagetitle-divider { color: var(--muted); font-weight: 400; }
+.tc-pagetitle-meta {
+  font-size: 1.000rem;
+  font-weight: 500;
+  color: var(--muted2);
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
+.tc-lock-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.tc-lock-pill--locked {
+  color: var(--red, #ef4444);
+  border-color: var(--red, #ef4444);
+  background: color-mix(in srgb, var(--red, #ef4444) 10%, transparent);
+}
+.tc-lock-pill--grace {
+  color: var(--amber, #f59e0b);
+  border-color: var(--amber, #f59e0b);
+  background: color-mix(in srgb, var(--amber, #f59e0b) 10%, transparent);
+}
+
+/* --- Hours summary — the visual hero ------------------------- */
+.tc-summary {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 10px;
+  padding: 0;
+}
+@media (max-width: 540px) {
+  .tc-summary { grid-template-columns: 1fr 1fr; }
+  .tc-summary > .tc-stat--lead { grid-column: 1 / -1; }
+}
+
+.tc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 16px 14px;
+  background: var(--card);
+  border: var(--tc-rule);
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+/* "Lead" stat (Today) gets a punchy left rule in the brand color and
+   a slightly larger number — pulls the eye first. */
+.tc-stat--lead {
+  border-left: 3px solid var(--accent);
+}
+.tc-stat--lead .tc-stat-num {
+  font-size: 4.000rem;
+}
+.tc-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tc-stat-num {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 2.714rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.tc-stat-unit {
+  font-size: 0.45em;
+  font-weight: 600;
+  color: var(--muted);
+  margin-left: 2px;
+}
+.tc-stat-meta {
+  font-size: 0.786rem;
+  font-weight: 500;
+  color: var(--muted2);
+  letter-spacing: 0.02em;
+}
+.tc-stat.is-alert .tc-stat-num { color: var(--amber, #f59e0b); }
+.tc-stat-skeleton {
+  display: inline-block;
+  width: 1.6em;
+  height: 0.8em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  animation: tcShimmer 1.4s ease-in-out infinite;
+}
+@keyframes tcShimmer {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.7; }
+}
+
+.tc-stat-progress {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+  margin-top: 6px;
+}
+.tc-stat-progress-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in srgb, var(--accent) 70%, var(--blue, #3b82f6))
+  );
+  transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.tc-stat.is-alert .tc-stat-progress-fill {
+  background: var(--amber, #f59e0b);
+}
+
+/* --- Week strip ---------------------------------------------- */
+.tc-weekstrip {
+  background: var(--card);
+  border: var(--tc-rule);
+  border-radius: 14px;
+  padding: 14px 14px 12px;
+}
+.tc-weekstrip-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  align-items: end;
+}
+.tc-weekstrip-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  border-radius: 8px;
+  position: relative;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.tc-weekstrip-day:hover {
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+.tc-weekstrip-day.is-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.tc-weekstrip-dow {
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.tc-weekstrip-bar {
+  position: relative;
+  width: 100%;
+  height: 4rem;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.tc-weekstrip-fill {
+  width: 100%;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 80%, transparent),
+    var(--accent)
+  );
+  transition: height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: tcGrowUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes tcGrowUp {
+  from { transform: scaleY(0); transform-origin: bottom; }
+  to   { transform: scaleY(1); transform-origin: bottom; }
+}
+.tc-weekstrip-day:not(.has-hours) .tc-weekstrip-fill { background: none; }
+.tc-weekstrip-hours {
+  font-family: var(--font-mono);
+  font-size: 0.786rem;
+  font-weight: 600;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+.tc-weekstrip-day:not(.has-hours) .tc-weekstrip-hours {
+  color: var(--muted);
+  font-weight: 400;
+}
+.tc-weekstrip-day.is-today {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.tc-weekstrip-day.is-today .tc-weekstrip-dow {
+  color: var(--accent);
+}
+.tc-weekstrip-day.is-today::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* --- Disclosure sections (Calendar, Entries, Team) ---------- */
+.tc-disclosure {
+  background: var(--card);
+  border: var(--tc-rule);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.tc-disclosure.is-open { border-color: color-mix(in srgb, var(--accent) 35%, var(--border)); }
+.tc-disclosure-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+}
+.tc-disclosure-toggle:hover { background: var(--card2); }
+.tc-disclosure-chevron {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.tc-disclosure-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tc-disclosure-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.000rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.tc-disclosure-icon { color: var(--muted); display: inline-flex; }
+.tc-disclosure-sub {
+  font-size: 0.857rem;
+  color: var(--muted);
+  font-family: var(--font-body);
+}
+.tc-disclosure-body {
+  padding: 0 16px 16px;
+  border-top: 1px dashed var(--border);
+  animation: tcReveal 0.18s ease-out;
+}
+@keyframes tcReveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Entries list (inside disclosure) ----------------------- */
+.tc-entries {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tc-entry {
+  display: grid;
+  grid-template-columns: 4px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 8px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.tc-entry:hover { border-color: var(--accent); }
+.tc-entry-tag {
+  display: block;
+  width: 4px;
+  height: 36px;
+  border-radius: 2px;
+}
+.tc-entry-body { min-width: 0; }
+.tc-entry-headline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.tc-entry-code {
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text2);
+}
+.tc-entry-code--general { color: var(--muted); }
+.tc-entry-ot {
+  font-family: var(--font-mono);
+  font-size: 0.643rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--amber, #f59e0b);
+  color: #1a1a1a;
+  letter-spacing: 0.08em;
+}
+.tc-entry-desc {
+  margin: 0;
+  font-size: 0.929rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tc-entry-hours {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.286rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.tc-entry-hours-unit {
+  font-size: 0.786rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.tc-entry-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tc-entry-del:hover {
+  color: var(--red, #ef4444);
+  border-color: var(--red, #ef4444);
+  background: color-mix(in srgb, var(--red, #ef4444) 10%, transparent);
+}
+
+.tc-empty-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 18px;
+  background: none;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.929rem;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+.tc-empty-cta:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tc-empty-cta-plus {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.000rem;
+}
+
+/* --- FAB ----------------------------------------------------- */
+.tc-fab {
+  position: fixed;
+  right: 16px;
+  /* Sit above TabBar (4rem) + AI Assist clearance (~4rem) — stack
+     them with the FAB on top of AI Assist, leaving 16px gap below. */
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px) + 6.571rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px 12px 14px;
+  background: var(--accent);
+  color: var(--accent-text, #ffffff);
+  border: none;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 1.000rem;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 90;
+  box-shadow:
+    0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 2px 6px rgba(0, 0, 0, 0.18);
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tc-fab:hover { transform: translateY(-2px); }
+.tc-fab:active { transform: translateY(0); }
+
+@media (min-width: 769px) {
+  .tc-fab { bottom: 24px; }
+}
+
+/* ============================================================
+   QUICK LOG SHEET — bottom sheet for fast time entry
+   ============================================================ */
+.ql-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 250;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: qlFade 0.18s ease-out;
+}
+@keyframes qlFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.ql-sheet {
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+  animation: qlSlide 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (min-width: 600px) {
+  .ql-overlay { align-items: center; }
+  .ql-sheet {
+    border-radius: 16px;
+    border-bottom: 1px solid var(--border);
+    max-height: 88vh;
+  }
+}
+@keyframes qlSlide {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.ql-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ql-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.ql-title {
+  margin: 2px 0 0;
+  font-size: 1.571rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.ql-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ql-close:hover { color: var(--text); border-color: var(--text2); }
+
+.ql-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ql-section-label {
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ql-optional {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--muted2);
+}
+
+/* Date picker — promoted to top of sheet (date is the second-most
+   important decision after hours). 4 chips: Today / Yesterday /
+   day-before / native picker. Each chip stacks a primary label with a
+   smaller secondary weekday/date for at-a-glance clarity. */
+.ql-date-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.ql-date-chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: var(--font-body);
+  text-align: center;
+  min-width: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.ql-date-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ql-date-chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.ql-date-chip-primary {
+  font-size: 0.929rem;
+  font-weight: 600;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.15;
+}
+.ql-date-chip-secondary {
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  line-height: 1;
+}
+.ql-date-chip.is-active .ql-date-chip-secondary {
+  color: color-mix(in srgb, #ffffff 75%, transparent);
+}
+/* The "Pick…" chip wraps a hidden native date input so tapping anywhere
+   on the chip pops the OS date picker on iOS/Android. */
+.ql-date-chip--picker { cursor: pointer; }
+.ql-date-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  font: inherit;
+  /* iOS Safari ignores opacity:0 for date inputs in some versions; force it. */
+  -webkit-appearance: none;
+}
+
+/* Hour stepper — the visual centerpiece. */
+.ql-hours {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+/* Subtle grid in the stepper bg to echo the page ledger. */
+.ql-hours::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to bottom, transparent 23px, color-mix(in srgb, var(--text) 4%, transparent) 24px);
+  background-size: 100% 24px;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ql-hours > * { position: relative; }
+.ql-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ql-stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.143rem;
+  height: 3.143rem;
+  border-radius: 12px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s;
+}
+.ql-stepper-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ql-stepper-btn:active { transform: scale(0.96); }
+.ql-stepper-display {
+  flex: 1;
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+.ql-stepper-input {
+  width: 100%;
+  text-align: center;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 3.429rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  padding: 0;
+  min-width: 0;
+}
+.ql-stepper-unit {
+  font-family: var(--font-mono);
+  font-size: 1.143rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ql-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.ql-preset {
+  padding: 8px 10px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.929rem;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.ql-preset:hover { border-color: var(--accent); color: var(--accent); }
+.ql-preset.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* WO chips. */
+.ql-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ql-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.857rem;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.12s;
+  max-width: 100%;
+}
+.ql-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ql-chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+.ql-chip.is-active .ql-chip-code,
+.ql-chip.is-active .ql-chip-icon { color: inherit; }
+.ql-chip-icon {
+  display: inline-flex;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.ql-chip-code {
+  font-family: var(--font-mono);
+  font-size: 0.714rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.ql-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Inputs. */
+.ql-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 1.000rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.12s;
+}
+.ql-input:focus { border-color: var(--accent); }
+.ql-input--inline { width: auto; flex: 1; }
+
+.ql-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ql-row--toggle {
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.929rem;
+  color: var(--text);
+  justify-content: flex-start;
+}
+
+/* "More fields" disclosure. */
+.ql-more-toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 0.786rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.ql-more-toggle:hover { color: var(--accent); }
+.ql-more {
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+.ql-status {
+  margin: 0;
+  font-size: 0.857rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.ql-status--locked {
+  background: color-mix(in srgb, var(--red, #ef4444) 12%, transparent);
+  color: var(--red, #ef4444);
+}
+.ql-status--grace {
+  background: color-mix(in srgb, var(--amber, #f59e0b) 12%, transparent);
+  color: var(--amber, #f59e0b);
+}
+
+.ql-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--red, #ef4444) 12%, transparent);
+  color: var(--red, #ef4444);
+  font-size: 0.857rem;
+  font-weight: 600;
+}
+
+.ql-footer {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+.ql-btn {
+  flex: 1;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 1.000rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  border: 1px solid transparent;
+}
+.ql-btn--ghost {
+  background: var(--card2);
+  color: var(--text);
+  border-color: var(--border);
+}
+.ql-btn--ghost:hover { background: var(--card); }
+.ql-btn--primary {
+  flex: 2;
+  background: var(--accent);
+  color: var(--accent-text, #ffffff);
+}
+.ql-btn--primary:hover { transform: translateY(-1px); }
+.ql-btn--primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============================================
+   ACTION BAR — sticky bottom toolbar (above TabBar on mobile)
+   ============================================ */
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  /* Sit above the TabBar (4rem + iOS home indicator). */
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  z-index: 110; /* above the tab bar (100), under modals (300+) */
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+}
+/* Desktop has no TabBar, so flush the action bar to the bottom edge. */
+@media (min-width: 769px) {
+  .action-bar { bottom: 0; }
+}
+.action-bar-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  /* Horizontal scroll fallback when buttons exceed width — the rightmost
+     action is never clipped. */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.action-bar-scroll::-webkit-scrollbar { display: none; }
+
+.action-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  padding: 0 14px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-size: 0.929rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+.action-bar-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.000rem;
+  line-height: 1;
+}
+.action-bar-btn-label { line-height: 1; }
+
+.action-bar-btn--primary {
+  background: var(--accent);
+  color: var(--accent-text, #ffffff);
+}
+.action-bar-btn--primary:hover { background: var(--accent-hover, var(--accent)); }
+
+.action-bar-btn--secondary {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--border);
+}
+.action-bar-btn--secondary:hover { background: var(--card2); }
+
+.action-bar-btn--danger {
+  background: transparent;
+  color: var(--red, #ef4444);
+  border-color: var(--red, #ef4444);
+}
+.action-bar-btn--danger:hover {
+  background: color-mix(in srgb, var(--red, #ef4444) 12%, transparent);
+}
+
+/* ============================================
+   WORK ORDER DETAIL — page-level responsive
+   ============================================ */
+/* Two-column on desktop, single column on phones. Inline grid on the page
+   uses 2fr/1fr; this collapses cleanly without rewriting the JSX. */
+@media (max-width: 768px) {
+  .wo-detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .wo-detail-page {
+    /* Tighten side gutters on mobile so cards have breathing room. */
+    padding: 12px !important;
+  }
+}
+
+/* ============================================
+   MORE LAUNCHER — mobile app inventory cards
+   ============================================ */
+.more-card {
+  display: grid;
+  grid-template-columns: 38px 1fr 16px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 76px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.more-card:hover { border-color: var(--accent); background: var(--card2); }
+.more-card:active { transform: scale(0.98); }
+.more-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.more-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+.more-card-icon > svg { width: 18px; height: 18px; }
+.more-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.more-card-title {
+  font-size: 1.000rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+.more-card-desc {
+  font-size: 0.857rem;
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.more-card-chevron {
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ============================================
+   TAB BAR — mobile bottom navigation
+   ============================================ */
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  height: calc(4rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  /* Subtle backdrop so content scrolling under the bar doesn't bleed through. */
+  backdrop-filter: saturate(140%) blur(8px);
+  -webkit-backdrop-filter: saturate(140%) blur(8px);
+}
+
+.tabbar-item {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.214rem;
+  padding: 0.429rem 0.286rem 0.571rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.714rem;
+  font-weight: 500;
+  color: var(--muted);
+  transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.tabbar-item:hover { color: var(--text2); }
+.tabbar-item.is-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+/* Active indicator: a thin pill flush to the top edge of the bar. */
+.tabbar-item.is-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1.571rem;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: var(--accent);
+}
+
+.tabbar-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.571rem;
+  height: 1.571rem;
+}
+.tabbar-icon > svg { width: 1.429rem; height: 1.429rem; }
+.tabbar-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  pointer-events: none;
+}
+
+.tabbar-label {
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ============================================
+   MODAL — Delta styles
+   ============================================ */
+.ds-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+.ds-modal {
+  background: var(--card);
+  border: 1px solid var(--border-hi);
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: fadeUp 0.25s ease both;
+}
+.ds-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.ds-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.286rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.ds-modal-close {
+  width: 2.143rem;
+  height: 2.143rem;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+}
+.ds-modal-close:hover {
+  background: var(--hover-subtle);
+  color: var(--text);
+}
+.ds-modal-body { color: var(--text); }
+.ds-modal-footer {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ============================================
+   SKELETON — Delta styles
+   ============================================ */
+.ds-skeleton {
+  background: var(--card2);
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+.ds-skeleton-table {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ds-skeleton-row {
+  display: flex;
+  gap: 16px;
+}
+.ds-skeleton-row > * { flex: 1; }
+
+/* ============================================
+   PAGINATION — Delta styles
+   ============================================ */
+.ds-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ds-pagination-info {
+  font-size: 0.857rem;
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.ds-pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ds-pagination-btn {
+  width: 2.143rem;
+  height: 2.143rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.857rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all 0.15s;
+  padding: 0;
+}
+.ds-pagination-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-hi);
+  background: var(--hover-subtle);
+}
+.ds-pagination-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+.ds-pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ============================================
+   STATS BAR — Delta styles
+   ============================================ */
+.ds-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.ds-stat-card {
+  background: var(--card);
+  padding: 16px 20px;
+}
+.ds-stat-num {
+  font-family: var(--font-mono);
+  font-size: 2.000rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+.ds-stat-label {
+  font-size: 0.786rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+@media (max-width: 900px) {
+  .ds-stats-bar { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .ds-stat-num { font-size: 1.571rem; }
+}
+
+/* ============================================
+   ACCESSIBILITY — WCAG 2.1 AA primitives
+   ============================================ */
+
+/* Visually hidden but available to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link — reveals when focused via keyboard */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  background: var(--accent);
+  color: var(--accent-text);
+  padding: 12px 20px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.000rem;
+  border-radius: 0 0 8px 0;
+  z-index: 10000;
+  transition: top 0.15s;
+}
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* Accessible clickable row — keyboard support via role="button" + tabIndex
+   Used by all list/feed pages instead of `<div onClick>` divs.
+   Apply with `<div className="row-item" role="button" tabIndex={0} ...>`. */
+.row-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-body);
+  color: inherit;
+}
+.row-item:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.row-item:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4px var(--accent);
+}
+
+/* Honor reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}

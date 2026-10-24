@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@app/shared": "workspace:*",
+    "@techconnect/design-system": "workspace:*",
+    "lucide-react": "^1.61.0",
     "oidc-client-ts": "^3.5.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

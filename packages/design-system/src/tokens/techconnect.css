@@ -1,0 +1,187 @@
+/*
+ * TechConnect Legacy theme — Stanford Cardinal brand-first tokens
+ *
+ * Provenance:
+ *   - Stanford Cardinal canonical (light): #8C1515 — contrast 7.4:1 on white
+ *   - Stanford Cardinal bright (dark):     #E63946 — lifted for dark-surface legibility
+ *   - Palette mirrors foundation default/light dark+light tokens; the defining
+ *     difference is brand/accent collapse: --accent resolves to Cardinal.
+ *   - Reference: openspec/changes/add-techconnect-theme/design.md, decision D2
+ *   - Source: TechConnect Features Figma (Apr 2026) + foundation /packages/design-system/src/theme.css
+ *
+ * Last revision: 2026-04-16
+ *
+ * Key invariant preserved from foundation: status colors (green/amber/red/blue/
+ * purple/cyan/gray) remain semantic — the TC theme does NOT Cardinal-ify state
+ * indicators, preserving color-blind safety and WCAG 2.1 AA contrast.
+ *
+ * Scope discipline: tokens-only. No component shape, radii, typography, or
+ * density changes. See design.md goals/non-goals.
+ */
+
+/* ============================================
+   TECHCONNECT — Dark variant (Cardinal on dark)
+   ============================================
+   Selector uses :root[data-theme="…"] (specificity 0,2,0) so these rules
+   outrank the foundation's :root / [data-theme="default"] block even though
+   this file is @import-ed at the top of theme.css (CSS @import can only
+   appear at the top). Without the specificity bump, the later-declared
+   :root default would override every property here. */
+:root[data-theme="techconnect"] {
+  /* Surfaces — Stanford Cardinal red tones matching the legacy TechConnect app.
+     Deep cardinal backgrounds with warm undertones. */
+  --bg:           #1a0a0a;
+  --surface:      #2d1111;
+  --surface2:     #3d1818;
+  --card:         #4a1c1c;
+  --card2:        #5c2222;
+  --card-head-bg: rgba(140, 21, 21, 0.3);
+
+  --border:       rgba(218, 165, 32, 0.15);
+  --border-hi:    rgba(218, 165, 32, 0.25);
+
+  /* ACCENT = Stanford Gold — matches legacy TechConnect yellow/gold text */
+  --accent:       #DAA520;
+  --accent-hover: #C49418;
+  --accent-dim:   rgba(218, 165, 32, 0.16);
+  --accent-text:  #1a0a0a;
+
+  /* BRAND = Cardinal Red */
+  --brand:        #8C1515;
+  --brand-hover:  #6E1010;
+  --brand-dim:    rgba(140, 21, 21, 0.3);
+
+  --hover-subtle: rgba(255, 255, 255, 0.04);
+  --hover:        rgba(255, 255, 255, 0.03);
+  --hover-hi:     rgba(255, 255, 255, 0.06);
+  --overlay:      rgba(0, 0, 0, 0.6);
+
+  /* Status colors — UNCHANGED from foundation default dark (semantic, color-blind safe).
+     These are the same values as :root default; preserved intentionally. */
+  --blue:         #60a5fa;
+  --blue-hover:   #3b82f6;
+  --blue-dim:     rgba(96, 165, 250, 0.16);
+  --blue-mid:     rgba(96, 165, 250, 0.22);
+
+  --green:        #34d399;
+  --green-dim:    rgba(52, 211, 153, 0.14);
+
+  --red:          #f87171;
+  --red-dim:      rgba(248, 113, 113, 0.14);
+
+  --amber:        #fbbf24;
+  --amber-dim:    rgba(251, 191, 36, 0.14);
+
+  --purple:       #a78bfa;
+  --purple-dim:   rgba(167, 139, 250, 0.14);
+
+  --cyan:         #22d3ee;
+  --cyan-dim:     rgba(34, 211, 238, 0.14);
+
+  --gray:         #94a3b8;
+  --gray-dim:     rgba(148, 163, 184, 0.12);
+
+  --text:         #f5e6c8;
+  --text2:        #dcc9a0;
+  --muted:        #b09870;
+  --muted2:       #d4b88a;
+
+  /* Layout dimensions unchanged (scope: tokens-only) */
+  --sidebar-w:    220px;
+  --topbar-h:     60px;
+
+  /* Radii unchanged (scope: tokens-only) */
+  --radius-sm:    6px;
+  --radius:       10px;
+  --radius-lg:    14px;
+
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow:       0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* Typography unchanged (design D1 decision — keep DM Sans / Syne / DM Mono) */
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  --font-display: 'Syne', 'DM Sans', system-ui, sans-serif;
+
+  --transition-fast: 0.13s ease;
+  --transition:      0.2s ease;
+  --transition-slow: 0.35s ease;
+
+  color-scheme: dark;
+}
+
+/* ============================================
+   TECHCONNECT LIGHT — Cardinal on white
+   ============================================ */
+:root[data-theme="techconnect-light"] {
+  /* Same cardinal red + gold as dark TC, only backgrounds are light */
+  --bg:           #FDF5F0;
+  --surface:      #FFF8F5;
+  --surface2:     #FAEFEA;
+  --card:         #FFF8F5;
+  --card2:        #FAEFEA;
+  --card-head-bg: rgba(140, 21, 21, 0.06);
+
+  --border:       rgba(140, 21, 21, 0.12);
+  --border-hi:    rgba(140, 21, 21, 0.20);
+
+  /* ACCENT = Stanford Gold — same hue, darkened for light bg contrast */
+  --accent:       #B8860B;
+  --accent-hover: #9A7209;
+  --accent-dim:   rgba(184, 134, 11, 0.12);
+  --accent-text:  #fff;
+
+  /* BRAND = Cardinal Red */
+  --brand:        #8C1515;
+  --brand-hover:  #6E1010;
+  --brand-dim:    rgba(140, 21, 21, 0.08);
+
+  --hover-subtle: rgba(140, 21, 21, 0.03);
+  --hover:        rgba(140, 21, 21, 0.02);
+  --hover-hi:     rgba(140, 21, 21, 0.05);
+  --overlay:      rgba(0, 0, 0, 0.3);
+
+  /* Status colors — same as dark TC (semantic, unchanged) */
+  --blue:         #60a5fa;
+  --blue-hover:   #3b82f6;
+  --blue-dim:     rgba(96, 165, 250, 0.16);
+  --blue-mid:     rgba(96, 165, 250, 0.22);
+
+  --green:        #34d399;
+  --green-dim:    rgba(52, 211, 153, 0.14);
+
+  --red:          #f87171;
+  --red-dim:      rgba(248, 113, 113, 0.14);
+
+  --amber:        #fbbf24;
+  --amber-dim:    rgba(251, 191, 36, 0.14);
+
+  --purple:       #a78bfa;
+  --purple-dim:   rgba(167, 139, 250, 0.14);
+
+  --cyan:         #22d3ee;
+  --cyan-dim:     rgba(34, 211, 238, 0.14);
+
+  --gray:         #94a3b8;
+  --gray-dim:     rgba(148, 163, 184, 0.12);
+
+  /* Text — dark cardinal tones on light background */
+  --text:         #3D1111;
+  --text2:        #5C2020;
+  --muted:        #8B6050;
+  --muted2:       #6B4030;
+
+  --sidebar-w:    220px;
+  --topbar-h:     4rem;
+
+  --shadow-sm:    0 1px 2px rgba(140, 21, 21, 0.06);
+  --shadow:       0 1px 3px rgba(140, 21, 21, 0.08);
+  --shadow-lg:    0 4px 16px rgba(140, 21, 21, 0.10);
+
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'DM Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  --font-display: 'Syne', 'DM Sans', system-ui, sans-serif;
+
+  color-scheme: light;
+}

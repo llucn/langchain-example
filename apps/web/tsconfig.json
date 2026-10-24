@@ -1,7 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
@@ -9,9 +13,21 @@
     "declaration": false,
     "sourceMap": false,
     "isolatedModules": true,
-    "types": ["vite/client"],
+    "types": [
+      "vite/client"
+    ],
     "tsBuildInfoFile": "./node_modules/.cache/tsconfig.tsbuildinfo",
-    "paths": { "@app/shared": ["../../packages/shared/src/index.ts"] }
+    "paths": {
+      "@app/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@techconnect/design-system": [
+        "../../packages/design-system/src/index.ts"
+      ]
+    }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts"
+  ]
 }
