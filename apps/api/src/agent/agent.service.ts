@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { createAgent } from 'langchain';
 import { Repository } from 'typeorm';
 import { APP_ENV, type AppEnv } from '../config/env';
+import { ChatSession } from '../database/entities/chat-session.entity';
 import { User } from '../database/entities/user.entity';
 import {
   AGENT_MAX_CONTEXT_MESSAGES,
@@ -19,9 +20,8 @@ import {
   AGENT_SYSTEM_PROMPT,
   AGENT_THINKING_EFFORT,
 } from './agent.config';
-import { createGetUsersTool } from './tools/get-users.tool';
-import { sendMail } from './tools/send-mail.tool';
-import { getWeather } from './tools/get-weather.tool';
+import type { AgentRunContext } from './agent.context';
+import { buildTools } from './tools';
 
 export interface HistoryMessage {
   role: 'user' | 'assistant';
@@ -81,6 +81,7 @@ export class AgentService {
   constructor(
     @Inject(APP_ENV) private readonly env: AppEnv,
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(ChatSession) private readonly sessions: Repository<ChatSession>,
   ) {}
 
   /**
@@ -89,6 +90,7 @@ export class AgentService {
    */
   async run(
     history: HistoryMessage[],
+    ctx: AgentRunContext,
     onThinking: (delta: string) => void | Promise<void>,
   ): Promise<{ answer: string; thinking: string }> {
     const { baseUrl, apiKey } = this.env.model;
@@ -104,7 +106,7 @@ export class AgentService {
         thinking: { type: 'adaptive' },
         outputConfig: { effort: AGENT_THINKING_EFFORT },
       }),
-      tools: [getWeather, createGetUsersTool(this.users), sendMail],
+      tools: buildTools({ ...ctx, users: this.users, sessions: this.sessions }),
       systemPrompt: AGENT_SYSTEM_PROMPT,
     });
 

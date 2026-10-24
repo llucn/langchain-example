@@ -83,11 +83,20 @@ export class ChatController {
       emit({ type: 'session', session: toSessionDto(session) });
       emit({ type: 'user', message: toMessageDto(userMessage) });
 
-      const { answer, thinking } = await this.agent.run(await this.chat.history(id), (delta) => {
-        emit({ type: 'thinking', delta });
-      });
+      const { answer, thinking } = await this.agent.run(
+        await this.chat.history(id),
+        { sessionId: id },
+        (delta) => {
+          emit({ type: 'thinking', delta });
+        },
+      );
       const reply = await this.chat.addAssistantMessage(id, answer, thinking);
       emit({ type: 'assistant', message: toMessageDto(reply) });
+      // The agent may have renamed the session (renameSession).
+      emit({
+        type: 'session',
+        session: toSessionDto(await this.chat.getSession(id, ownerOf(req))),
+      });
     } catch (err) {
       this.logger.error(err);
       emit({ type: 'error', message: (err as Error).message || 'AI request failed' });

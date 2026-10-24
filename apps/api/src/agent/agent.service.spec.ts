@@ -16,11 +16,15 @@ describe('trimHistory', () => {
 
 describe('AgentService config', () => {
   const svc = (model: { baseUrl?: string; apiKey?: string }) =>
-    new AgentService({ model } as never, {} as never);
+    new AgentService({ model } as never, {} as never, {} as never);
 
   it('names the missing variable', async () => {
-    await expect(svc({ apiKey: 'k' }).run([], () => {})).rejects.toThrow('MODEL_BASE_URL');
-    await expect(svc({ baseUrl: 'http://x' }).run([], () => {})).rejects.toThrow('MODEL_API_KEY');
+    await expect(svc({ apiKey: 'k' }).run([], { sessionId: 's' }, () => {})).rejects.toThrow(
+      'MODEL_BASE_URL',
+    );
+    await expect(
+      svc({ baseUrl: 'http://x' }).run([], { sessionId: 's' }, () => {}),
+    ).rejects.toThrow('MODEL_API_KEY');
   });
 });
 

@@ -1,8 +1,14 @@
 import type { Repository } from 'typeorm';
+import type { ChatSession } from '../../database/entities/chat-session.entity';
 import type { User } from '../../database/entities/user.entity';
 import { listUsers, USERS_MAX_LIMIT } from './get-users.tool';
 import { mockSendMail } from './send-mail.tool';
 import { mockWeather } from './get-weather.tool';
+import {
+  createRenameSessionTool,
+  updateSessionName,
+  SESSION_NAME_MAX,
+} from './rename-session.tool';
 
 describe('getWeather', () => {
   it('is deterministic and shaped', () => {
@@ -46,5 +52,29 @@ describe('sendMail', () => {
       bodyLength: 5,
       source: 'mock',
     });
+  });
+});
+
+describe('renameSession', () => {
+  const update = jest.fn();
+  const sessions = { update } as unknown as Repository<ChatSession>;
+
+  it('normalizes, caps and stores the name for the given session', async () => {
+    expect(
+      await updateSessionName(sessions, 'sid', `  Trip \n  plan ${'x'.repeat(200)}`),
+    ).toHaveLength(SESSION_NAME_MAX);
+    expect(update).toHaveBeenCalledWith('sid', { name: expect.stringMatching(/^Trip plan x/) });
+  });
+
+  it('rejects an empty name', async () => {
+    update.mockClear();
+    expect(await updateSessionName(sessions, 'sid', '   ')).toBeNull();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('gets the session id from context, not from the LLM schema', async () => {
+    const t = createRenameSessionTool({ sessions, sessionId: 'ctx-id' } as never);
+    await t.invoke({ name: 'Hello' });
+    expect(update).toHaveBeenCalledWith('ctx-id', { name: 'Hello' });
   });
 });
