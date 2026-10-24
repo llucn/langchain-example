@@ -87,7 +87,7 @@ function hasCardHeader(children: React.ReactNode): boolean {
 }
 
 /** Delta-style card head — uppercase title, bottom border. */
-export interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardHeaderProps = HTMLAttributes<HTMLDivElement>;
 export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ className, children, ...props }, ref) => (
     <div ref={ref} className={cn('card-head', className)} {...props}>
@@ -99,7 +99,7 @@ export const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(
 );
 CardHeader.displayName = 'CardHeader';
 
-export interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {}
+export type CardTitleProps = HTMLAttributes<HTMLHeadingElement>;
 export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, children, ...props }, ref) => (
     <h3 ref={ref} className={cn('card-head-title', className)} {...props}>
@@ -109,10 +109,15 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
 );
 CardTitle.displayName = 'CardTitle';
 
-export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardContentProps = HTMLAttributes<HTMLDivElement>;
 export const CardContent = forwardRef<HTMLDivElement, CardContentProps>(
   ({ className, children, ...props }, ref) => (
-    <div ref={ref} className={cn('card-body', className)} style={{ color: 'var(--text)', ...props.style }} {...props}>
+    <div
+      ref={ref}
+      className={cn('card-body', className)}
+      style={{ color: 'var(--text)', ...props.style }}
+      {...props}
+    >
       {children}
     </div>
   ),
