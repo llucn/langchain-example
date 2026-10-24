@@ -67,8 +67,8 @@ export class ChatService {
     );
   }
 
-  /** Placeholder for the future AI: thinks out loud and answers with the user's input verbatim. */
-  think(input: string): { thinking: string; answer: string } {
-    return { thinking: input, answer: input };
+  /** Persisted conversation so far, oldest first, as plain role/content pairs for the agent. */
+  async history(sessionId: string): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+    return (await this.listMessages(sessionId)).map((m) => ({ role: m.role, content: m.content }));
   }
 }

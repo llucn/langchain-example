@@ -44,4 +44,5 @@ export type ChatStreamEvent =
   | { type: 'user'; message: ChatMessage }
   | { type: 'thinking'; delta: string }
   | { type: 'assistant'; message: ChatMessage }
-  | { type: 'session'; session: ChatSession };
+  | { type: 'session'; session: ChatSession }
+  | { type: 'error'; message: string };

@@ -23,6 +23,7 @@ export interface AppEnv {
   };
   redis: { host: string; port: number; password?: string; db: number; tls: boolean };
   auth: { enabled: boolean; issuer: string; clientId: string };
+  model: { baseUrl?: string; apiKey?: string };
 }
 
 export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
@@ -51,6 +52,10 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
       enabled: bool(env.AUTH_ENABLED),
       issuer: env.OIDC_ISSUER ?? '',
       clientId: env.OIDC_CLIENT_ID ?? '',
+    },
+    model: {
+      baseUrl: env.MODEL_BASE_URL || undefined,
+      apiKey: env.MODEL_API_KEY || undefined,
     },
   };
 }

@@ -89,6 +89,9 @@ export function ChatPage() {
         } else if (ev.type === 'assistant') {
           setThinking(null);
           setMessages((m) => [...m, ev.message]);
+        } else if (ev.type === 'error') {
+          setThinking(null);
+          setError(ev.message);
         }
       });
       void refreshSessions();

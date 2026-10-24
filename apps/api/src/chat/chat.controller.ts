@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
   ChatMessage as ChatMessageDto,
@@ -6,19 +16,24 @@ import type {
   ChatStreamEvent,
 } from '@app/shared';
 import type { Request, Response } from 'express';
+import { AgentService } from '../agent/agent.service';
 import { ChatService, toMessageDto, toSessionDto } from './chat.service';
 import { SendMessageDto } from './send-message.dto';
 
 type AuthedRequest = Request & { user?: { sub?: string } };
 
 const ownerOf = (req: AuthedRequest) => req.user?.sub ?? null;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 @ApiTags('chat')
 @ApiBearerAuth()
 @Controller('chat/sessions')
 export class ChatController {
-  constructor(private readonly chat: ChatService) {}
+  private readonly logger = new Logger(ChatController.name);
+
+  constructor(
+    private readonly chat: ChatService,
+    private readonly agent: AgentService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List chat sessions, newest first' })
@@ -68,13 +83,14 @@ export class ChatController {
       emit({ type: 'session', session: toSessionDto(session) });
       emit({ type: 'user', message: toMessageDto(userMessage) });
 
-      const { thinking, answer } = this.chat.think(dto.content);
-      for (const delta of thinking.match(/\S+\s*|\s+/g) ?? []) {
+      const { answer, thinking } = await this.agent.run(await this.chat.history(id), (delta) => {
         emit({ type: 'thinking', delta });
-        await sleep(40);
-      }
+      });
       const reply = await this.chat.addAssistantMessage(id, answer, thinking);
       emit({ type: 'assistant', message: toMessageDto(reply) });
+    } catch (err) {
+      this.logger.error(err);
+      emit({ type: 'error', message: (err as Error).message || 'AI request failed' });
     } finally {
       res.end();
     }
