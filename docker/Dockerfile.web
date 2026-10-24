@@ -1,0 +1,22 @@
+# Build context: repo root  (docker build -f docker/Dockerfile.web .)
+FROM node:22-alpine AS build
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY apps/web/package.json apps/web/
+RUN pnpm install --frozen-lockfile --filter @app/web...
+COPY packages/shared packages/shared
+COPY apps/web apps/web
+
+# Public OIDC settings are baked into the bundle at build time
+ARG OIDC_ISSUER=
+ARG OIDC_CLIENT_ID=
+ARG OIDC_COGNITO_DOMAIN=
+ARG OIDC_SCOPE=
+ENV OIDC_ISSUER=$OIDC_ISSUER OIDC_CLIENT_ID=$OIDC_CLIENT_ID OIDC_COGNITO_DOMAIN=$OIDC_COGNITO_DOMAIN OIDC_SCOPE=$OIDC_SCOPE
+RUN pnpm --filter @app/web build
+
+FROM nginx:1.27-alpine AS runtime
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 80
