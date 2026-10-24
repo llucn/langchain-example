@@ -1,12 +1,16 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 export type Theme =
-  | 'default'
-  | 'light'
-  | 'high-contrast'
-  | 'sunlight'
-  | 'techconnect'
-  | 'techconnect-light';
+  'default' | 'light' | 'high-contrast' | 'sunlight' | 'techconnect' | 'techconnect-light';
 
 export const ALL_THEMES: readonly Theme[] = [
   'default',
@@ -42,14 +46,18 @@ function getStoredTheme(): Theme {
   try {
     const stored = localStorage.getItem(THEME_KEY);
     if (isTheme(stored)) return stored;
-  } catch {}
+  } catch {
+    // localStorage unavailable (private mode, blocked storage); ignore
+  }
   return 'default';
 }
 
 function getStoredSimplified(): boolean {
   try {
     return localStorage.getItem(SIMPLIFIED_KEY) === 'true';
-  } catch {}
+  } catch {
+    // localStorage unavailable (private mode, blocked storage); ignore
+  }
   return false;
 }
 
@@ -60,7 +68,9 @@ function getStoredFontScale(): number {
       const n = parseFloat(stored);
       if (n >= 0.75 && n <= 1.75) return n;
     }
-  } catch {}
+  } catch {
+    // localStorage unavailable (private mode, blocked storage); ignore
+  }
   return 1;
 }
 
@@ -100,14 +110,18 @@ export function ThemeProvider({
     setThemeState(t);
     try {
       localStorage.setItem(THEME_KEY, t);
-    } catch {}
+    } catch {
+      // localStorage unavailable (private mode, blocked storage); ignore
+    }
   }, []);
 
   const setSimplified = useCallback((s: boolean) => {
     setSimplifiedState(s);
     try {
       localStorage.setItem(SIMPLIFIED_KEY, String(s));
-    } catch {}
+    } catch {
+      // localStorage unavailable (private mode, blocked storage); ignore
+    }
   }, []);
 
   // Apply font scale to root element — all rem values scale proportionally.
@@ -117,14 +131,19 @@ export function ThemeProvider({
     document.documentElement.style.fontSize = px;
   }, []);
 
-  const setFontScale = useCallback((scale: number) => {
-    const clamped = Math.min(1.75, Math.max(0.75, scale));
-    setFontScaleState(clamped);
-    applyFontScale(clamped);
-    try {
-      localStorage.setItem(FONT_SCALE_KEY, String(clamped));
-    } catch {}
-  }, [applyFontScale]);
+  const setFontScale = useCallback(
+    (scale: number) => {
+      const clamped = Math.min(1.75, Math.max(0.75, scale));
+      setFontScaleState(clamped);
+      applyFontScale(clamped);
+      try {
+        localStorage.setItem(FONT_SCALE_KEY, String(clamped));
+      } catch {
+        // localStorage unavailable (private mode, blocked storage); ignore
+      }
+    },
+    [applyFontScale],
+  );
 
   useEffect(() => {
     const root = document.documentElement;
@@ -167,7 +186,9 @@ export function ThemeProvider({
           setThemeState(serverTheme);
           try {
             localStorage.setItem(THEME_KEY, serverTheme);
-          } catch {}
+          } catch {
+            // localStorage unavailable (private mode, blocked storage); ignore
+          }
         }
       })
       .catch(() => {
@@ -206,7 +227,9 @@ export function ThemeProvider({
   }, [theme, userId, setServerTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, simplified, setSimplified, fontScale, setFontScale }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, simplified, setSimplified, fontScale, setFontScale }}
+    >
       {children}
     </ThemeContext.Provider>
   );
