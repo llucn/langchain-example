@@ -1,8 +1,12 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@techconnect/design-system';
+
 export function HomePage() {
   return (
-    <section>
-      <h1>Welcome</h1>
-      <p>NestJS + React monorepo skeleton.</p>
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>Welcome</CardTitle>
+      </CardHeader>
+      <CardContent>NestJS + React monorepo skeleton.</CardContent>
+    </Card>
   );
 }

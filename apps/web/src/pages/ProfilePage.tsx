@@ -1,4 +1,5 @@
 import type { UserProfile } from '@app/shared';
+import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@techconnect/design-system';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { apiFetch } from '../lib/api';
@@ -13,14 +14,17 @@ export function ProfilePage() {
     apiFetch<UserProfile>('/auth/me').then(setMe, (e: Error) => setError(e.message));
   }, [auth.loading, auth.enabled, auth.user]);
 
-  if (auth.loading) return <p>Loading…</p>;
-  if (auth.enabled && !auth.user) return <p>Please sign in.</p>;
-
   return (
-    <section>
-      <h1>Profile</h1>
-      {error && <p style={{ color: 'crimson' }}>Error: {error}</p>}
-      {me && <pre>{JSON.stringify(me, null, 2)}</pre>}
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>Profile</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {auth.loading && <Skeleton />}
+        {!auth.loading && auth.enabled && !auth.user && <p>Please sign in.</p>}
+        {error && <p style={{ color: 'var(--red)' }}>Error: {error}</p>}
+        {me && <pre style={{ fontFamily: 'var(--font-mono)', margin: 0 }}>{JSON.stringify(me, null, 2)}</pre>}
+      </CardContent>
+    </Card>
   );
 }

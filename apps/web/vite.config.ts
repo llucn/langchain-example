@@ -16,7 +16,11 @@ export default defineConfig(({ mode }) => {
     envPrefix: ['VITE_', 'OIDC_'],
     resolve: {
       // Use shared sources directly in dev/build (HMR, no pre-build needed)
-      alias: { '@app/shared': resolve(rootDir, 'packages/shared/src/index.ts') },
+      alias: {
+        '@app/shared': resolve(rootDir, 'packages/shared/src/index.ts'),
+        '@techconnect/design-system/theme.css': resolve(rootDir, 'packages/design-system/src/theme.css'),
+        '@techconnect/design-system': resolve(rootDir, 'packages/design-system/src/index.ts'),
+      },
     },
     server: {
       host: '0.0.0.0',
