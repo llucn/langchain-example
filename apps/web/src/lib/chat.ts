@@ -5,6 +5,11 @@ export const listChatSessions = () => apiFetch<ChatSession[]>('/chat/sessions');
 
 export const createChatSession = () => apiFetch<ChatSession>('/chat/sessions', { method: 'POST' });
 
+export async function deleteChatSession(sessionId: string): Promise<void> {
+  const res = await apiRequest(`/chat/sessions/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}
+
 export const listChatMessages = (sessionId: string) =>
   apiFetch<ChatMessage[]>(`/chat/sessions/${sessionId}/messages`);
 

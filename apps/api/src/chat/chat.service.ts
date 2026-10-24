@@ -46,6 +46,12 @@ export class ChatService {
     return session;
   }
 
+  /** Deletes the session; its messages go with it (FK ON DELETE CASCADE). */
+  async deleteSession(id: string, ownerSub: string | null): Promise<void> {
+    await this.getSession(id, ownerSub);
+    await this.sessions.delete(id);
+  }
+
   listMessages(sessionId: string): Promise<ChatMessage[]> {
     return this.messages.find({ where: { sessionId }, order: { createdAt: 'ASC' } });
   }

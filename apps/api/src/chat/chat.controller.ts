@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
-  Logger,
+  Delete,
   Get,
+  HttpCode,
+  Logger,
   Param,
   ParseUUIDPipe,
   Post,
@@ -45,6 +47,13 @@ export class ChatController {
   @ApiOperation({ summary: 'Start an empty chat session' })
   async create(@Req() req: AuthedRequest): Promise<ChatSessionDto> {
     return toSessionDto(await this.chat.createSession(ownerOf(req)));
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Delete a chat session and its messages' })
+  async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthedRequest): Promise<void> {
+    await this.chat.deleteSession(id, ownerOf(req));
   }
 
   @Get(':id/messages')
