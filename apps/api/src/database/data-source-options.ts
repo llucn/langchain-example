@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DataSourceOptions } from 'typeorm';
 import { AppEnv } from '../config/env';
+import { ChatMessage } from './entities/chat-message.entity';
+import { ChatSession } from './entities/chat-session.entity';
 import { User } from './entities/user.entity';
 
 export function buildDataSourceOptions(env: AppEnv): DataSourceOptions {
@@ -21,7 +23,7 @@ export function buildDataSourceOptions(env: AppEnv): DataSourceOptions {
           ca: db.sslCaPath ? readFileSync(db.sslCaPath, 'utf8') : undefined,
         }
       : false,
-    entities: [User],
+    entities: [User, ChatSession, ChatMessage],
     migrations: [join(__dirname, 'migrations', `*.${ext}`)],
     migrationsRun: db.migrationsRun,
     synchronize: false,
