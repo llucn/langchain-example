@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Streamed thinking and answer
-When a message is sent, the system SHALL run the AI agent and stream, in order, the saved user message, the thinking text, and the saved assistant message. The thinking text SHALL contain the agent's reasoning, each tool call with its arguments, and each tool result, in the order they happened. The saved assistant message SHALL store the same text as its thinking and the agent's final reply as its content. Empty messages SHALL be rejected with 400.
+When a message is sent, the system SHALL run the AI agent and stream, in order, the saved user message, the thinking text, and the saved assistant message. The thinking text SHALL contain the agent's reasoning, each tool call with its arguments, and each tool result, in the order they happened. The saved assistant message SHALL store the same text as its thinking and the agent's final reply as its content. After the assistant message the system SHALL emit the session again so clients receive a name changed by the agent. Empty messages SHALL be rejected with 400.
 
 #### Scenario: Plain question
 - **WHEN** the user sends a question that needs no tool

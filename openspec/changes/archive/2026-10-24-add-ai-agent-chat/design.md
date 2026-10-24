@@ -20,13 +20,19 @@
 - Framework: `createAgent` from `langchain` with `ChatAnthropic` from `@langchain/anthropic`. Alternative: LangGraph `createReactAgent`; rejected because `createAgent` is the current high-level API.
 - Connection: `new ChatAnthropic({ apiKey: MODEL_API_KEY, anthropicApiUrl: MODEL_BASE_URL, model })`, so a gateway/proxy base URL works. If either variable is missing the API still boots, and the chat call fails with a clear error.
 
-**Fixed parameters** live in `agent/agent.config.ts`: model name (a Claude model), `maxTokens` 4096, adaptive thinking (`thinking.type = "adaptive"`, as the model rejects `enabled`) with `outputConfig.effort = "medium"` instead of a token budget, a short system prompt (assistant persona that uses the tools for weather and user questions), `MAX_CONTEXT_MESSAGES = 20`, and a recursion limit of 10 steps.
+**Fixed parameters** live in `agent/agent.config.ts`: model name (a Claude model), `maxTokens` 4096, adaptive thinking (`thinking.type = "adaptive"`, as the model rejects `enabled`) with `outputConfig.effort = "medium"` instead of a token budget, a short system prompt (assistant persona that uses the tools), `MAX_CONTEXT_MESSAGES = 20`, and a recursion limit of 10 steps.
 
 **Context window.** The agent receives the last `MAX_CONTEXT_MESSAGES` persisted messages of the session (user and assistant `content` only; stored thinking is not replayed), oldest first, ending with the new user message.
 
 **Tools** (`agent/tools/`), defined with `tool()` and zod schemas, injected as Nest providers:
 - `getWeather({ city })`: returns deterministic mock data (condition, temperature in °C, humidity) derived from the city name. No external API.
 - `getUsers({ limit? })`: reads the `users` table through TypeORM and returns `id`, `email`, `createdAt` (never `sub`); default limit 10, max 50, newest first.
+
+**Tool context.** Tools are factories `(ctx: AgentToolContext) => tool`, listed in `tools/index.ts`. `AgentRunContext` (`sessionId`) is passed by the caller to `AgentService.run`; `AgentToolDeps` (`users`, `sessions` repositories) is held by `AgentService`. The two are merged per run, so tool schemas expose only LLM-chosen arguments. New tools follow the same shape.
+- `sendMail({ to: string[], subject, body })`: mock, always returns `success: true`, sends nothing.
+- `renameSession({ name })`: normalizes (whitespace, 80 chars), updates the context session, rejects empty names. The system prompt asks for a title of at most 30 characters on the first reply and on large topic changes. After the run the controller re-emits the `session` event.
+
+**Session deletion.** `DELETE /chat/sessions/:id` checks ownership (404 otherwise) and deletes the session; the existing `ON DELETE CASCADE` foreign key removes its messages. The web list shows a trash icon on row hover/focus and confirms in a `Modal`.
 
 **Thinking capture.** Run `agent.stream(..., { streamMode: ["messages", "updates"] })` and fold events into one ordered thinking text, emitting each addition as a `thinking` delta:
 - Claude `thinking` content blocks are appended as-is.
@@ -39,7 +45,7 @@ The final AI message text is the answer (`content`). The accumulated thinking is
 
 ## Risks / Trade-offs
 
-- [Gateway may not support extended thinking] → thinking is controlled by one constant; tool calls and results still fill `thinking`.
+- [Gateway may not support adaptive thinking or `outputConfig.effort`] → both are set in one place in `agent.service.ts`, easy to drop; tool calls and results still fill `thinking`.
 - [Mock weather data may be mistaken for real data] → tool output carries `source: "mock"` and the system prompt says so.
 - [`getUsers` exposes user emails to any chat user] → restricted fields only, hard limit of 50; revisit with per-role access later.
 - [Long history raises cost] → capped by `MAX_CONTEXT_MESSAGES`.

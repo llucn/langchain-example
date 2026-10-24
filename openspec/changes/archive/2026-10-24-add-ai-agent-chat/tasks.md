@@ -24,3 +24,11 @@
 - [x] 4.1 Unit test the tools (limit cap, no `sub` leaked, weather shape)
 - [x] 4.2 Unit test thinking folding and context trimming with a fake model
 - [x] 4.3 Run lint, build and tests for api and web
+
+## 5. Follow-up tools and session deletion
+
+- [x] 5.1 Add the mock `sendMail` tool and register it
+- [x] 5.2 Introduce `AgentToolContext` and tool factories; pass `sessionId` into `AgentService.run`
+- [x] 5.3 Add the `renameSession` tool, the system prompt instruction, and re-emit the session after the run
+- [x] 5.4 Add `DELETE /chat/sessions/:id` (owner-checked, cascades to messages)
+- [x] 5.5 Add the hover delete icon and confirmation dialog to the session list
