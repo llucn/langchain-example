@@ -9,6 +9,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "sourceMap": true,
-    "incremental": true
+    "incremental": true,
+    "ignoreDeprecations": "6.0"
   }
 }
