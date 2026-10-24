@@ -46,6 +46,12 @@ export class ChatService {
     return session;
   }
 
+  /** Deletes the session; its messages go with it (FK ON DELETE CASCADE). */
+  async deleteSession(id: string, ownerSub: string | null): Promise<void> {
+    await this.getSession(id, ownerSub);
+    await this.sessions.delete(id);
+  }
+
   listMessages(sessionId: string): Promise<ChatMessage[]> {
     return this.messages.find({ where: { sessionId }, order: { createdAt: 'ASC' } });
   }
@@ -67,8 +73,8 @@ export class ChatService {
     );
   }
 
-  /** Placeholder for the future AI: thinks out loud and answers with the user's input verbatim. */
-  think(input: string): { thinking: string; answer: string } {
-    return { thinking: input, answer: input };
+  /** Persisted conversation so far, oldest first, as plain role/content pairs for the agent. */
+  async history(sessionId: string): Promise<{ role: 'user' | 'assistant'; content: string }[]> {
+    return (await this.listMessages(sessionId)).map((m) => ({ role: m.role, content: m.content }));
   }
 }

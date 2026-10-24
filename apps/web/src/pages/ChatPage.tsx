@@ -1,11 +1,12 @@
 import type { ChatMessage, ChatSession } from '@app/shared';
-import { Button, EmptyState, Input, Skeleton } from '@techconnect/design-system';
-import { Brain, Plus, Send } from 'lucide-react';
+import { Button, EmptyState, Input, Modal, Skeleton } from '@techconnect/design-system';
+import { Brain, Plus, Send, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import {
   createChatSession,
+  deleteChatSession,
   listChatMessages,
   listChatSessions,
   sendChatMessage,
@@ -25,6 +26,9 @@ export function ChatPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<ChatSession | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   // Session currently being written by send(); its messages are already local, skip the reload.
   const sendingTo = useRef<string | null>(null);
@@ -65,6 +69,21 @@ export function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, thinking]);
 
+  async function confirmDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await deleteChatSession(toDelete.id);
+      setSessions((list) => list.filter((s) => s.id !== toDelete.id));
+      if (toDelete.id === sessionId) navigate('/chat');
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setToDelete(null);
+      setDeleting(false);
+    }
+  }
+
   async function send(e: FormEvent) {
     e.preventDefault();
     const content = draft.trim();
@@ -89,6 +108,9 @@ export function ChatPage() {
         } else if (ev.type === 'assistant') {
           setThinking(null);
           setMessages((m) => [...m, ev.message]);
+        } else if (ev.type === 'error') {
+          setThinking(null);
+          setError(ev.message);
         }
       });
       void refreshSessions();
@@ -123,14 +145,21 @@ export function ChatPage() {
         </div>
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, overflow: 'auto', flex: 1 }}>
           {sessions.map((s) => (
-            <li key={s.id}>
+            <li
+              key={s.id}
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setHoveredId(s.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              onFocus={() => setHoveredId(s.id)}
+              onBlur={() => setHoveredId(null)}
+            >
               <button
                 type="button"
                 onClick={() => navigate(`/chat/${s.id}`)}
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  padding: '10px 16px',
+                  padding: '10px 44px 10px 16px',
                   border: 0,
                   cursor: 'pointer',
                   color: 'var(--text)',
@@ -151,10 +180,53 @@ export function ChatPage() {
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)' }}>{formatTime(s.startedAt)}</div>
               </button>
+              {hoveredId === s.id && (
+                <button
+                  type="button"
+                  aria-label={`Delete chat ${s.name ?? 'New chat'}`}
+                  title="Delete"
+                  onClick={() => setToDelete(s)}
+                  style={{
+                    position: 'absolute',
+                    right: 10,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    padding: 6,
+                    border: 0,
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    background: 'transparent',
+                    color: 'var(--muted)',
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </li>
           ))}
         </ul>
       </aside>
+
+      <Modal
+        open={toDelete !== null}
+        onClose={() => !deleting && setToDelete(null)}
+        title="Delete chat?"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setToDelete(null)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => void confirmDelete()} loading={deleting}>
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p style={{ margin: 0 }}>
+          “{toDelete?.name ?? 'New chat'}” and all its messages will be permanently deleted.
+        </p>
+      </Modal>
 
       <section style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>

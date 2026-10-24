@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Logger,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type {
   ChatMessage as ChatMessageDto,
@@ -6,19 +18,24 @@ import type {
   ChatStreamEvent,
 } from '@app/shared';
 import type { Request, Response } from 'express';
+import { AgentService } from '../agent/agent.service';
 import { ChatService, toMessageDto, toSessionDto } from './chat.service';
 import { SendMessageDto } from './send-message.dto';
 
 type AuthedRequest = Request & { user?: { sub?: string } };
 
 const ownerOf = (req: AuthedRequest) => req.user?.sub ?? null;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 @ApiTags('chat')
 @ApiBearerAuth()
 @Controller('chat/sessions')
 export class ChatController {
-  constructor(private readonly chat: ChatService) {}
+  private readonly logger = new Logger(ChatController.name);
+
+  constructor(
+    private readonly chat: ChatService,
+    private readonly agent: AgentService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List chat sessions, newest first' })
@@ -30,6 +47,13 @@ export class ChatController {
   @ApiOperation({ summary: 'Start an empty chat session' })
   async create(@Req() req: AuthedRequest): Promise<ChatSessionDto> {
     return toSessionDto(await this.chat.createSession(ownerOf(req)));
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Delete a chat session and its messages' })
+  async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthedRequest): Promise<void> {
+    await this.chat.deleteSession(id, ownerOf(req));
   }
 
   @Get(':id/messages')
@@ -68,13 +92,23 @@ export class ChatController {
       emit({ type: 'session', session: toSessionDto(session) });
       emit({ type: 'user', message: toMessageDto(userMessage) });
 
-      const { thinking, answer } = this.chat.think(dto.content);
-      for (const delta of thinking.match(/\S+\s*|\s+/g) ?? []) {
-        emit({ type: 'thinking', delta });
-        await sleep(40);
-      }
+      const { answer, thinking } = await this.agent.run(
+        await this.chat.history(id),
+        { sessionId: id },
+        (delta) => {
+          emit({ type: 'thinking', delta });
+        },
+      );
       const reply = await this.chat.addAssistantMessage(id, answer, thinking);
       emit({ type: 'assistant', message: toMessageDto(reply) });
+      // The agent may have renamed the session (renameSession).
+      emit({
+        type: 'session',
+        session: toSessionDto(await this.chat.getSession(id, ownerOf(req))),
+      });
+    } catch (err) {
+      this.logger.error(err);
+      emit({ type: 'error', message: (err as Error).message || 'AI request failed' });
     } finally {
       res.end();
     }
