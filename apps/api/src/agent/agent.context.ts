@@ -12,6 +12,8 @@ import type { User } from '../database/entities/user.entity';
  */
 export interface AgentRunContext {
   sessionId: string;
+  /** The visitor's JWT, forwarded to the MCP servers; absent when auth is disabled. */
+  idToken?: string;
 }
 
 export interface AgentToolDeps {

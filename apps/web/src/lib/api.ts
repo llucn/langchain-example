@@ -4,7 +4,7 @@ export type TokenGetter = () => string | undefined;
 
 let getToken: TokenGetter = () => undefined;
 
-/** Registered by AuthProvider so API calls carry the current access token. */
+/** Registered by AuthProvider so API calls carry the current ID token. */
 export function setTokenGetter(fn: TokenGetter) {
   getToken = fn;
 }

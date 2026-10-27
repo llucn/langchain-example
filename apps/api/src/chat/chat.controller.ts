@@ -24,6 +24,11 @@ import { SendMessageDto } from './send-message.dto';
 
 type AuthedRequest = Request & { user?: { sub?: string } };
 
+const bearerOf = (req: Request) => {
+  const [scheme, token] = (req.headers.authorization ?? '').split(' ');
+  return scheme?.toLowerCase() === 'bearer' && token ? token : undefined;
+};
+
 const ownerOf = (req: AuthedRequest) => req.user?.sub ?? null;
 
 @ApiTags('chat')
@@ -94,7 +99,7 @@ export class ChatController {
 
       const { answer, thinking } = await this.agent.run(
         await this.chat.history(id),
-        { sessionId: id },
+        { sessionId: id, idToken: bearerOf(req) },
         (delta) => {
           emit({ type: 'thinking', delta });
         },
