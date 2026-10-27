@@ -46,6 +46,7 @@ describe('connectMcp', () => {
     });
     const c = await connectMcp({ user: 'https://u', asset: 'https://a' }, 'jwt');
     expect(c.tools).toEqual([{ name: 'user__t' }]);
+    expect(c.toolsByServer).toEqual({ user: [{ name: 'user__t' }], asset: [] });
     await c.close();
     expect(close).toHaveBeenCalled();
   });

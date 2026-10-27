@@ -97,13 +97,14 @@ export class ChatController {
       emit({ type: 'session', session: toSessionDto(session) });
       emit({ type: 'user', message: toMessageDto(userMessage) });
 
-      const { answer, thinking } = await this.agent.run(
+      const { answer, thinking, agent } = await this.agent.run(
         await this.chat.history(id),
-        { sessionId: id, idToken: bearerOf(req) },
+        { sessionId: id, idToken: bearerOf(req), agent: session.agent },
         (delta) => {
           emit({ type: 'thinking', delta });
         },
       );
+      if (agent !== session.agent) await this.chat.setAgent(id, agent);
       const reply = await this.chat.addAssistantMessage(id, answer, thinking);
       emit({ type: 'assistant', message: toMessageDto(reply) });
       // The agent may have renamed the session (renameSession).

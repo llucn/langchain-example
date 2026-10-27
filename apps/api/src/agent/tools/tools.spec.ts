@@ -81,10 +81,10 @@ describe('renameSession', () => {
 });
 
 describe('tool registry', () => {
-  it('registers only renameSession', () => {
+  it('registers renameSession and selectAgent', () => {
     const names = buildTools({ sessions: {}, users: {}, sessionId: 's' } as never).map(
       (t) => t.name,
     );
-    expect(names).toEqual(['renameSession']);
+    expect(names).toEqual(['renameSession', 'selectAgent']);
   });
 });

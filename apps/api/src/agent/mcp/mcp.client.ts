@@ -6,10 +6,12 @@ const logger = new Logger('McpClient');
 
 export interface McpConnection {
   tools: StructuredToolInterface[];
+  /** The same tools grouped by the server they came from (servers that were skipped are empty). */
+  toolsByServer: Record<string, StructuredToolInterface[]>;
   close: () => Promise<void>;
 }
 
-const NONE: McpConnection = { tools: [], close: async () => undefined };
+const NONE: McpConnection = { tools: [], toolsByServer: {}, close: async () => undefined };
 
 /**
  * Connects to the remote MCP servers (streamable HTTP) as the visitor: their JWT is forwarded as the
@@ -57,6 +59,7 @@ export async function connectMcp(
 
   return {
     tools: loaded.flat(),
+    toolsByServer: Object.fromEntries(names.map((name, i) => [name, loaded[i]])),
     close: () =>
       client.close().catch((err) => logger.warn(`MCP close failed: ${(err as Error).message}`)),
   };
