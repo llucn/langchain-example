@@ -24,7 +24,17 @@ export interface AppEnv {
   redis: { host: string; port: number; password?: string; db: number; tls: boolean };
   auth: { enabled: boolean; issuer: string; clientId: string };
   model: { baseUrl?: string; apiKey?: string };
+  /** Remote MCP servers by name; servers without a URL are omitted. */
+  mcp: { servers: Record<string, string> };
 }
+
+/** MCP server name -> env variable holding its URL. */
+export const MCP_SERVER_ENV = {
+  user: 'MCP_USER_URL',
+  asset: 'MCP_ASSET_URL',
+  location: 'MCP_LOCATION_URL',
+  work_order: 'MCP_WORK_ORDER_URL',
+} as const;
 
 export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
   return {
@@ -56,6 +66,13 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
     model: {
       baseUrl: env.MODEL_BASE_URL || undefined,
       apiKey: env.MODEL_API_KEY || undefined,
+    },
+    mcp: {
+      servers: Object.fromEntries(
+        Object.entries(MCP_SERVER_ENV).flatMap(([name, key]) =>
+          env[key]?.trim() ? [[name, env[key]!.trim()]] : [],
+        ),
+      ),
     },
   };
 }

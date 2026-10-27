@@ -25,7 +25,7 @@ const manager = enabled
       redirect_uri: redirectUri,
       post_logout_redirect_uri: redirectUri,
       response_type: 'code', // Authorization Code + PKCE
-      scope: OIDC_SCOPE || 'openid email',
+      scope: OIDC_SCOPE || 'openid email phone',
       userStore: new WebStorageStateStore({ store: window.localStorage }),
     })
   : null;
@@ -76,7 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    setTokenGetter(() => user?.access_token);
+    // ID token: the API accepts it (aud = client id) and forwards it to the MCP servers.
+    setTokenGetter(() => user?.id_token);
   }, [user]);
 
   const value = useMemo<AuthState>(

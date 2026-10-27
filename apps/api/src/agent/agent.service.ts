@@ -21,6 +21,7 @@ import {
   AGENT_THINKING_EFFORT,
 } from './agent.config';
 import type { AgentRunContext } from './agent.context';
+import { connectMcp } from './mcp/mcp.client';
 import { buildTools } from './tools';
 
 export interface HistoryMessage {
@@ -97,42 +98,50 @@ export class AgentService {
     if (!baseUrl) throw new Error('MODEL_BASE_URL is not set');
     if (!apiKey) throw new Error('MODEL_API_KEY is not set');
 
-    const agent = createAgent({
-      model: new ChatAnthropic({
-        model: AGENT_MODEL,
-        apiKey,
-        anthropicApiUrl: baseUrl,
-        maxTokens: AGENT_MAX_TOKENS,
-        thinking: { type: 'adaptive' },
-        outputConfig: { effort: AGENT_THINKING_EFFORT },
-      }),
-      tools: buildTools({ ...ctx, users: this.users, sessions: this.sessions }),
-      systemPrompt: AGENT_SYSTEM_PROMPT,
-    });
+    const mcp = await connectMcp(this.env.mcp.servers, ctx.idToken);
+    try {
+      const agent = createAgent({
+        model: new ChatAnthropic({
+          model: AGENT_MODEL,
+          apiKey,
+          anthropicApiUrl: baseUrl,
+          maxTokens: AGENT_MAX_TOKENS,
+          thinking: { type: 'adaptive' },
+          outputConfig: { effort: AGENT_THINKING_EFFORT },
+        }),
+        tools: [
+          ...buildTools({ ...ctx, users: this.users, sessions: this.sessions }),
+          ...mcp.tools,
+        ],
+        systemPrompt: AGENT_SYSTEM_PROMPT,
+      });
 
-    const messages: BaseMessage[] = trimHistory(history).map((m) =>
-      m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content),
-    );
+      const messages: BaseMessage[] = trimHistory(history).map((m) =>
+        m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content),
+      );
 
-    let thinking = '';
-    let answer = '';
-    const emit = async (chunk: string) => {
-      const delta = thinking ? `\n${chunk}` : chunk;
-      thinking += delta;
-      await onThinking(delta);
-    };
+      let thinking = '';
+      let answer = '';
+      const emit = async (chunk: string) => {
+        const delta = thinking ? `\n${chunk}` : chunk;
+        thinking += delta;
+        await onThinking(delta);
+      };
 
-    const stream = await agent.stream(
-      { messages },
-      { streamMode: 'updates', recursionLimit: AGENT_RECURSION_LIMIT },
-    );
-    for await (const update of stream) {
-      for (const [node, state] of Object.entries(update as Record<string, StepState>)) {
-        const step = foldStep(node, state?.messages ?? []);
-        for (const chunk of step.chunks) await emit(chunk);
-        if (step.answer !== undefined) answer = step.answer;
+      const stream = await agent.stream(
+        { messages },
+        { streamMode: 'updates', recursionLimit: AGENT_RECURSION_LIMIT },
+      );
+      for await (const update of stream) {
+        for (const [node, state] of Object.entries(update as Record<string, StepState>)) {
+          const step = foldStep(node, state?.messages ?? []);
+          for (const chunk of step.chunks) await emit(chunk);
+          if (step.answer !== undefined) answer = step.answer;
+        }
       }
+      return { answer, thinking };
+    } finally {
+      await mcp.close();
     }
-    return { answer, thinking };
   }
 }

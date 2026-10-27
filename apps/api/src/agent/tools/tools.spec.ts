@@ -1,3 +1,4 @@
+import { buildTools } from './index';
 import type { Repository } from 'typeorm';
 import type { ChatSession } from '../../database/entities/chat-session.entity';
 import type { User } from '../../database/entities/user.entity';
@@ -76,5 +77,14 @@ describe('renameSession', () => {
     const t = createRenameSessionTool({ sessions, sessionId: 'ctx-id' } as never);
     await t.invoke({ name: 'Hello' });
     expect(update).toHaveBeenCalledWith('ctx-id', { name: 'Hello' });
+  });
+});
+
+describe('tool registry', () => {
+  it('registers only renameSession', () => {
+    const names = buildTools({ sessions: {}, users: {}, sessionId: 's' } as never).map(
+      (t) => t.name,
+    );
+    expect(names).toEqual(['renameSession']);
   });
 });

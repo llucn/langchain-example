@@ -65,7 +65,7 @@ Key variables (see `.env.example` for all):
 2. Allowed callback URL / sign-out URL: `http://localhost:4200/` (and your deployed URL). Enable Authorization Code grant and the OAuth scopes you request (default `openid email`; set `OIDC_SCOPE` to add e.g. `profile`). Requesting a scope the app client does not allow fails with `invalid_scope`.
 3. Set `OIDC_ISSUER=https://cognito-idp.<region>.amazonaws.com/<userPoolId>`, `OIDC_CLIENT_ID=<app client id>`, `OIDC_COGNITO_DOMAIN=https://<prefix>.auth.<region>.amazoncognito.com`, and `AUTH_ENABLED=true`.
 
-The web app sends the access token as `Authorization: Bearer …`; the API validates signature (JWKS), issuer and client id. Mark open endpoints with `@Public()`.
+The web app sends the Cognito **ID token** as `Authorization: Bearer …`; the API validates signature (JWKS), issuer and client id. Mark open endpoints with `@Public()`.
 
 ## Development
 
