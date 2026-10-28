@@ -4,6 +4,7 @@ import { Brain, Plus, Send, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { Markdown } from '../components/Markdown';
 import {
   createChatSession,
   deleteChatSession,
@@ -11,6 +12,7 @@ import {
   listChatSessions,
   sendChatMessage,
 } from '../lib/chat';
+import { formatThinking } from '../lib/thinking';
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
@@ -295,7 +297,6 @@ function Bubble({ message }: { message: ChatMessage }) {
           maxWidth: '70%',
           padding: '10px 14px',
           borderRadius: 14,
-          whiteSpace: 'pre-wrap',
           overflowWrap: 'anywhere',
           background: mine ? 'var(--accent)' : 'var(--card)',
           color: mine ? 'var(--accent-text)' : 'var(--text)',
@@ -303,7 +304,7 @@ function Bubble({ message }: { message: ChatMessage }) {
           borderBottomLeftRadius: mine ? 14 : 4,
         }}
       >
-        {message.content}
+        <Markdown breaks={mine}>{message.content}</Markdown>
       </div>
       <span style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
         {formatTime(message.createdAt)}
@@ -314,8 +315,8 @@ function Bubble({ message }: { message: ChatMessage }) {
 
 function ThinkingBubble({ text, collapsed = false }: { text: string; collapsed?: boolean }) {
   const body = (
-    <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginTop: 4 }}>
-      {text || '…'}
+    <div style={{ marginTop: 4 }}>
+      <Markdown>{text ? formatThinking(text) : '…'}</Markdown>
     </div>
   );
   return (
@@ -328,7 +329,6 @@ function ThinkingBubble({ text, collapsed = false }: { text: string; collapsed?:
         border: '1px dashed var(--border-hi)',
         color: 'var(--muted2)',
         fontSize: 13,
-        fontStyle: 'italic',
       }}
     >
       {collapsed ? (
