@@ -14,14 +14,14 @@ import { ChatSession } from '../database/entities/chat-session.entity';
 import { User } from '../database/entities/user.entity';
 import {
   AGENT_MAX_CONTEXT_MESSAGES,
-  AGENT_MAX_TOKENS,
-  AGENT_MODEL,
   AGENT_RECURSION_LIMIT,
-  AGENT_SYSTEM_PROMPT,
-  AGENT_THINKING_EFFORT,
+  AGENTS,
+  resolveAgent,
+  type AgentName,
 } from './agent.config';
 import type { AgentRunContext } from './agent.context';
 import { connectMcp } from './mcp/mcp.client';
+import { createMultiAgentMiddleware } from './multi-agent.middleware';
 import { buildTools } from './tools';
 
 export interface HistoryMessage {
@@ -54,6 +54,7 @@ export const trimHistory = (history: HistoryMessage[]) =>
 
 interface StepState {
   messages?: BaseMessage[];
+  currentAgent?: string;
 }
 
 /** Turns one graph step (model or tools node) into thinking chunks and, for a final reply, the answer. */
@@ -93,27 +94,39 @@ export class AgentService {
     history: HistoryMessage[],
     ctx: AgentRunContext,
     onThinking: (delta: string) => void | Promise<void>,
-  ): Promise<{ answer: string; thinking: string }> {
+  ): Promise<{ answer: string; thinking: string; agent: AgentName }> {
     const { baseUrl, apiKey } = this.env.model;
     if (!baseUrl) throw new Error('MODEL_BASE_URL is not set');
     if (!apiKey) throw new Error('MODEL_API_KEY is not set');
 
     const mcp = await connectMcp(this.env.mcp.servers, ctx.idToken);
     try {
+      const models = new Map<AgentName, ChatAnthropic>();
+      const modelFor = (name: AgentName) => {
+        let model = models.get(name);
+        if (!model) {
+          const def = AGENTS[name];
+          model = new ChatAnthropic({
+            model: def.model,
+            apiKey,
+            anthropicApiUrl: baseUrl,
+            maxTokens: def.maxTokens,
+            thinking: def.thinking,
+            outputConfig: def.outputConfig,
+          });
+          models.set(name, model);
+        }
+        return model;
+      };
+
+      const localTools = buildTools({ ...ctx, users: this.users, sessions: this.sessions });
+      let current = resolveAgent(ctx.agent);
       const agent = createAgent({
-        model: new ChatAnthropic({
-          model: AGENT_MODEL,
-          apiKey,
-          anthropicApiUrl: baseUrl,
-          maxTokens: AGENT_MAX_TOKENS,
-          thinking: { type: 'adaptive' },
-          outputConfig: { effort: AGENT_THINKING_EFFORT },
-        }),
-        tools: [
-          ...buildTools({ ...ctx, users: this.users, sessions: this.sessions }),
-          ...mcp.tools,
+        model: modelFor(current),
+        tools: [...localTools, ...mcp.tools],
+        middleware: [
+          createMultiAgentMiddleware({ modelFor, localTools, mcpByServer: mcp.toolsByServer }),
         ],
-        systemPrompt: AGENT_SYSTEM_PROMPT,
       });
 
       const messages: BaseMessage[] = trimHistory(history).map((m) =>
@@ -129,17 +142,18 @@ export class AgentService {
       };
 
       const stream = await agent.stream(
-        { messages },
+        { messages, currentAgent: current },
         { streamMode: 'updates', recursionLimit: AGENT_RECURSION_LIMIT },
       );
       for await (const update of stream) {
         for (const [node, state] of Object.entries(update as Record<string, StepState>)) {
+          if (state?.currentAgent) current = resolveAgent(state.currentAgent);
           const step = foldStep(node, state?.messages ?? []);
           for (const chunk of step.chunks) await emit(chunk);
           if (step.answer !== undefined) answer = step.answer;
         }
       }
-      return { answer, thinking };
+      return { answer, thinking, agent: current };
     } finally {
       await mcp.close();
     }

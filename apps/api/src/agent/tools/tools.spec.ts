@@ -78,13 +78,22 @@ describe('renameSession', () => {
     await t.invoke({ name: 'Hello' });
     expect(update).toHaveBeenCalledWith('ctx-id', { name: 'Hello' });
   });
+
+  it('notifies the caller after a rename, but not for an empty name', async () => {
+    const onSessionRenamed = jest.fn();
+    const t = createRenameSessionTool({ sessions, sessionId: 'sid', onSessionRenamed } as never);
+    await t.invoke({ name: '  ' });
+    expect(onSessionRenamed).not.toHaveBeenCalled();
+    await t.invoke({ name: 'Hello' });
+    expect(onSessionRenamed).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('tool registry', () => {
-  it('registers only renameSession', () => {
+  it('registers renameSession and selectAgent', () => {
     const names = buildTools({ sessions: {}, users: {}, sessionId: 's' } as never).map(
       (t) => t.name,
     );
-    expect(names).toEqual(['renameSession']);
+    expect(names).toEqual(['renameSession', 'selectAgent']);
   });
 });

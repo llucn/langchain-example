@@ -1,0 +1,107 @@
+/*
+ * Markdown inside chat bubbles. Colors derive from the bubble's own text color (currentColor), so
+ * the same rules read well on every theme and on both the accent (user) and card (agent) bubbles.
+ */
+.md {
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md p,
+.md ul,
+.md ol,
+.md pre,
+.md blockquote,
+.md table {
+  margin: 0.5em 0;
+}
+.md--breaks p {
+  white-space: pre-wrap;
+}
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+  margin: 0.8em 0 0.4em;
+  line-height: 1.25;
+}
+.md h1 {
+  font-size: 1.3em;
+}
+.md h2 {
+  font-size: 1.15em;
+}
+.md h3,
+.md h4 {
+  font-size: 1.05em;
+}
+.md ul,
+.md ol {
+  padding-left: 1.4em;
+}
+.md li {
+  margin: 0.15em 0;
+}
+.md a {
+  color: var(--blue);
+  text-decoration: underline;
+}
+.md--breaks a {
+  color: inherit;
+}
+.md strong {
+  font-weight: 700;
+}
+.md hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  margin: 0.8em 0;
+}
+.md blockquote {
+  padding: 0 0 0 0.9em;
+  border-left: 3px solid color-mix(in srgb, currentColor 35%, transparent);
+  opacity: 0.85;
+}
+.md code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 13%, transparent);
+}
+.md pre {
+  padding: 10px 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+}
+.md pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+  white-space: pre;
+}
+.md table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.md th,
+.md td {
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  text-align: left;
+}
+.md th {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.md img {
+  max-width: 100%;
+}

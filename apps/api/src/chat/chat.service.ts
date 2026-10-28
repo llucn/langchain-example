@@ -46,6 +46,10 @@ export class ChatService {
     return session;
   }
 
+  async setAgent(sessionId: string, agent: string): Promise<void> {
+    await this.sessions.update(sessionId, { agent });
+  }
+
   /** Deletes the session; its messages go with it (FK ON DELETE CASCADE). */
   async deleteSession(id: string, ownerSub: string | null): Promise<void> {
     await this.getSession(id, ownerSub);

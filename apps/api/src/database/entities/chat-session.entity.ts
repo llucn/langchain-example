@@ -14,6 +14,10 @@ export class ChatSession {
   @Column({ type: 'text', nullable: true })
   name: string | null;
 
+  /** The agent that handles this session's next message (see agent.config.ts). */
+  @Column({ type: 'varchar', length: 64, default: 'selector' })
+  agent: string;
+
   @CreateDateColumn({ type: 'timestamptz' })
   startedAt: Date;
 

@@ -14,6 +14,10 @@ export interface AgentRunContext {
   sessionId: string;
   /** The visitor's JWT, forwarded to the MCP servers; absent when auth is disabled. */
   idToken?: string;
+  /** The session's active agent (see agent.config.ts); unknown names start at the selector. */
+  agent?: string;
+  /** Called after `renameSession` stored a new name, so the caller can tell the client at once. */
+  onSessionRenamed?: () => void | Promise<void>;
 }
 
 export interface AgentToolDeps {
