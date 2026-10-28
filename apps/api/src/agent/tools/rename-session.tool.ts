@@ -18,10 +18,15 @@ export async function updateSessionName(
   return clean;
 }
 
-export const createRenameSessionTool: AgentToolFactory = ({ sessions, sessionId }) =>
+export const createRenameSessionTool: AgentToolFactory = ({
+  sessions,
+  sessionId,
+  onSessionRenamed,
+}) =>
   tool(
     async ({ name }) => {
       const saved = await updateSessionName(sessions, sessionId, name);
+      if (saved) await onSessionRenamed?.();
       return JSON.stringify(
         saved ? { success: true, name: saved } : { success: false, error: 'name is empty' },
       );

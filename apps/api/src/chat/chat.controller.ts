@@ -99,7 +99,18 @@ export class ChatController {
 
       const { answer, thinking, agent } = await this.agent.run(
         await this.chat.history(id),
-        { sessionId: id, idToken: bearerOf(req), agent: session.agent },
+        {
+          sessionId: id,
+          idToken: bearerOf(req),
+          agent: session.agent,
+          // The list shows the new name right away instead of after the whole run.
+          onSessionRenamed: async () => {
+            emit({
+              type: 'session',
+              session: toSessionDto(await this.chat.getSession(id, ownerOf(req))),
+            });
+          },
+        },
         (delta) => {
           emit({ type: 'thinking', delta });
         },

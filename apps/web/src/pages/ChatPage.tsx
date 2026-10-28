@@ -100,7 +100,14 @@ export function ChatPage() {
       }
       sendingTo.current = id;
       await sendChatMessage(id, content, (ev) => {
-        if (ev.type === 'user') {
+        if (ev.type === 'session') {
+          // Show the session in the list as soon as it has a name, and follow later renames.
+          setSessions((list) =>
+            list.some((x) => x.id === ev.session.id)
+              ? list.map((x) => (x.id === ev.session.id ? ev.session : x))
+              : [ev.session, ...list],
+          );
+        } else if (ev.type === 'user') {
           setMessages((m) => [...m, ev.message]);
           setThinking('');
         } else if (ev.type === 'thinking') {
