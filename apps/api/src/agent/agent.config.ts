@@ -39,7 +39,7 @@ const MODEL_DEFAULTS = {
 const COMMON_RULES = [
   'Answer concisely in the language the user writes in.',
   'Use only the tools you have and never invent data they should provide.',
-  "Call `renameSession` again only when the topic of the conversation changes substantially; a title is a short summary (at most 30 characters, in the user's language).",
+  "Call `renameSession` again only when the topic of the conversation changes substantially; a title is a short summary (at most 30 characters) written in the same language as the user's messages, e.g. an English message gets an English title.",
   'The history may contain internal hand-over calls to `selectAgent`; never mention them or say you lack that tool.',
 ];
 

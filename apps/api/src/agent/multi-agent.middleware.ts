@@ -51,7 +51,7 @@ export function composePrompt(agent: AgentName, messages: { type: string }[], su
     base,
     '',
     `Routing summary from the selector: ${summary}`,
-    "This is your first reply after the hand-over: also call `renameSession` with a short title (at most 30 characters, in the user's language).",
+    "This is your first reply after the hand-over: also call `renameSession` with a short title (at most 30 characters) written in the same language as the user's messages, e.g. an English message gets an English title.",
   ].join('\n');
 }
 
