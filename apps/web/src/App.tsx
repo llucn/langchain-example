@@ -6,13 +6,14 @@ import {
   Topbar,
   useTheme,
 } from '@techconnect/design-system';
-import { Activity, Home, MessageSquare, User } from 'lucide-react';
+import { Activity, ClipboardCheck, Home, MessageSquare, User } from 'lucide-react';
 import { useState } from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
 import { ChatPage } from './pages/ChatPage';
 import { HealthPage } from './pages/HealthPage';
 import { HomePage } from './pages/HomePage';
+import { LogReviewPage } from './pages/LogReviewPage';
 import { ProfilePage } from './pages/ProfilePage';
 
 const NAV_ITEMS = [
@@ -22,6 +23,11 @@ const NAV_ITEMS = [
   { id: '/profile', label: 'Profile', icon: <User size={16} /> },
 ];
 
+/** Shown to admins only (the API enforces it too). */
+const ADMIN_NAV_ITEMS = [
+  { id: '/log-review', label: 'Log Review', icon: <ClipboardCheck size={16} /> },
+];
+
 export function App() {
   const auth = useAuth();
   const { pathname } = useLocation();
@@ -29,16 +35,18 @@ export function App() {
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
 
+  const navItems = auth.isAdmin ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
   const current =
-    NAV_ITEMS.find((i) => i.id === pathname || (i.id !== '/' && pathname.startsWith(`${i.id}/`))) ??
-    NAV_ITEMS[0];
+    [...NAV_ITEMS, ...ADMIN_NAV_ITEMS].find(
+      (i) => i.id === pathname || (i.id !== '/' && pathname.startsWith(`${i.id}/`)),
+    ) ?? NAV_ITEMS[0];
   const isLight = theme === 'light' || theme === 'techconnect-light';
 
   return (
     <ToastProvider>
-      <div style={{ display: 'flex', height: '100vh' }}>
+      <div style={{ display: 'flex', height: '98vh' }}>
         <Sidebar
-          items={NAV_ITEMS}
+          items={navItems}
           activeId={current.id}
           onSelect={navigate}
           collapsed={collapsed}
@@ -67,7 +75,7 @@ export function App() {
               flex: 1,
               minHeight: 0,
               overflow: 'auto',
-              padding: pathname.startsWith('/chat') ? 0 : 24,
+              padding: pathname.startsWith('/chat') || pathname.startsWith('/log-review') ? 0 : 24,
             }}
           >
             <Routes>
@@ -75,6 +83,7 @@ export function App() {
               <Route path="/chat/:sessionId?" element={<ChatPage />} />
               <Route path="/health" element={<HealthPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/log-review" element={<LogReviewPage />} />
             </Routes>
           </main>
         </div>

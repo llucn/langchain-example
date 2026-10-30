@@ -1,5 +1,6 @@
 import { config as loadDotenv } from 'dotenv';
-import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 // Repo-root .env (shared with web). Existing process env (e.g. docker compose) wins.
 loadDotenv({ path: resolve(__dirname, '../../../../.env'), quiet: true });
@@ -22,7 +23,14 @@ export interface AppEnv {
     migrationsRun: boolean;
   };
   redis: { host: string; port: number; password?: string; db: number; tls: boolean };
-  auth: { enabled: boolean; issuer: string; clientId: string };
+  auth: {
+    enabled: boolean;
+    issuer: string;
+    clientId: string;
+    /** Cognito group of admins. */ adminGroup: string;
+  };
+  /** Version recorded in chat logs. */
+  app: { version: string };
   model: { baseUrl?: string; apiKey?: string };
   /** Remote MCP servers by name; servers without a URL are omitted. */
   mcp: { servers: Record<string, string> };
@@ -35,6 +43,16 @@ export const MCP_SERVER_ENV = {
   location: 'MCP_LOCATION_URL',
   work_order: 'MCP_WORK_ORDER_URL',
 } as const;
+
+/** `version` of apps/api/package.json (same relative path from src/config and dist/config). */
+function packageVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8'));
+    return typeof pkg.version === 'string' && pkg.version ? pkg.version : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
   return {
@@ -62,7 +80,9 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
       enabled: bool(env.AUTH_ENABLED),
       issuer: env.OIDC_ISSUER ?? '',
       clientId: env.OIDC_CLIENT_ID ?? '',
+      adminGroup: env.ADMIN_GROUP?.trim() || 'admin',
     },
+    app: { version: env.APP_VERSION?.trim() || packageVersion() },
     model: {
       baseUrl: env.MODEL_BASE_URL || undefined,
       apiKey: env.MODEL_API_KEY || undefined,

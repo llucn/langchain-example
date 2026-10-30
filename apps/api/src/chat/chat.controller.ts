@@ -19,10 +19,11 @@ import type {
 } from '@app/shared';
 import type { Request, Response } from 'express';
 import { AgentService } from '../agent/agent.service';
+import { ChatLogService, logUserOf } from '../chat-log/chat-log.service';
 import { ChatService, toMessageDto, toSessionDto } from './chat.service';
 import { SendMessageDto } from './send-message.dto';
 
-type AuthedRequest = Request & { user?: { sub?: string } };
+type AuthedRequest = Request & { user?: Record<string, unknown> & { sub?: string } };
 
 const bearerOf = (req: Request) => {
   const [scheme, token] = (req.headers.authorization ?? '').split(' ');
@@ -40,6 +41,7 @@ export class ChatController {
   constructor(
     private readonly chat: ChatService,
     private readonly agent: AgentService,
+    private readonly chatLog: ChatLogService,
   ) {}
 
   @Get()
@@ -51,7 +53,9 @@ export class ChatController {
   @Post()
   @ApiOperation({ summary: 'Start an empty chat session' })
   async create(@Req() req: AuthedRequest): Promise<ChatSessionDto> {
-    return toSessionDto(await this.chat.createSession(ownerOf(req)));
+    const session = await this.chat.createSession(ownerOf(req));
+    await this.chatLog.recordSession(session, logUserOf(req.user));
+    return toSessionDto(session);
   }
 
   @Delete(':id')
@@ -59,6 +63,8 @@ export class ChatController {
   @ApiOperation({ summary: 'Delete a chat session and its messages' })
   async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthedRequest): Promise<void> {
     await this.chat.deleteSession(id, ownerOf(req));
+    // The log outlives the session; it only records the deletion.
+    await this.chatLog.markDeleted(id);
   }
 
   @Get(':id/messages')
@@ -82,6 +88,7 @@ export class ChatController {
     @Res() res: Response,
   ): Promise<void> {
     const session = await this.chat.getSession(id, ownerOf(req));
+    const log = this.chatLog.startRun(session, logUserOf(req.user), session.agent);
 
     res.status(200).set({
       'Content-Type': 'text/event-stream; charset=utf-8',
@@ -94,6 +101,8 @@ export class ChatController {
 
     try {
       const userMessage = await this.chat.addUserMessage(session, dto.content);
+      log.userInput(dto.content, userMessage.id);
+      void this.chatLog.touchName(id, session.name);
       emit({ type: 'session', session: toSessionDto(session) });
       emit({ type: 'user', message: toMessageDto(userMessage) });
 
@@ -103,12 +112,12 @@ export class ChatController {
           sessionId: id,
           idToken: bearerOf(req),
           agent: session.agent,
+          log,
           // The list shows the new name right away instead of after the whole run.
           onSessionRenamed: async () => {
-            emit({
-              type: 'session',
-              session: toSessionDto(await this.chat.getSession(id, ownerOf(req))),
-            });
+            const renamed = await this.chat.getSession(id, ownerOf(req));
+            void this.chatLog.touchName(id, renamed.name);
+            emit({ type: 'session', session: toSessionDto(renamed) });
           },
         },
         (delta) => {
@@ -117,6 +126,7 @@ export class ChatController {
       );
       if (agent !== session.agent) await this.chat.setAgent(id, agent);
       const reply = await this.chat.addAssistantMessage(id, answer, thinking);
+      log.linkAnswer(reply.id);
       emit({ type: 'assistant', message: toMessageDto(reply) });
       // The agent may have renamed the session (renameSession).
       emit({
@@ -125,9 +135,12 @@ export class ChatController {
       });
     } catch (err) {
       this.logger.error(err);
-      emit({ type: 'error', message: (err as Error).message || 'AI request failed' });
+      const message = (err as Error).message || 'AI request failed';
+      log.error(message, session.agent);
+      emit({ type: 'error', message });
     } finally {
       res.end();
+      await log.flush();
     }
   }
 }

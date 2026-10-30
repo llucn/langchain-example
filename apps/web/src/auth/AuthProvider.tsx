@@ -1,12 +1,17 @@
 import { UserManager, WebStorageStateStore, type User } from 'oidc-client-ts';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { setTokenGetter } from '../lib/api';
+import type { UserProfile } from '@app/shared';
+import { apiFetch, setTokenGetter } from '../lib/api';
 
 interface AuthState {
   /** false when OIDC_ISSUER / OIDC_CLIENT_ID are not configured */
   enabled: boolean;
   loading: boolean;
   user: User | null;
+  /** Admin role (from `/auth/me`); true when authentication is disabled. */
+  isAdmin: boolean;
+  /** false while the role of a signed-in user is still being fetched. */
+  adminKnown: boolean;
   signIn: () => void;
   signOut: () => void;
 }
@@ -34,6 +39,8 @@ const AuthContext = createContext<AuthState>({
   enabled,
   loading: false,
   user: null,
+  isAdmin: !enabled,
+  adminKnown: true,
   signIn: () => undefined,
   signOut: () => undefined,
 });
@@ -58,6 +65,8 @@ function loadUser(): Promise<User | null> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(enabled);
+  // null = signed in, role not known yet
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(!enabled);
 
   useEffect(() => {
     if (!manager) return;
@@ -78,6 +87,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // ID token: the API accepts it (aud = client id) and forwards it to the MCP servers.
     setTokenGetter(() => user?.id_token);
+    // The API decides who is admin (ADMIN_GROUP); the UI only hides what the API would refuse.
+    if (!user) {
+      setIsAdmin(!enabled);
+      return;
+    }
+    setIsAdmin(null);
+    let cancelled = false;
+    apiFetch<UserProfile>('/auth/me').then(
+      (me) => !cancelled && setIsAdmin(Boolean(me.isAdmin)),
+      () => !cancelled && setIsAdmin(false),
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const value = useMemo<AuthState>(
@@ -85,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       enabled,
       loading,
       user,
+      isAdmin: isAdmin === true,
+      adminKnown: isAdmin !== null,
       signIn: () => void manager?.signinRedirect(),
       signOut: () => {
         void manager?.removeUser();
@@ -96,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [loading, user],
+    [loading, user, isAdmin],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

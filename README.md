@@ -58,6 +58,8 @@ Key variables (see `.env.example` for all):
 | `REDIS_HOST/PORT/PASSWORD/DB`, `REDIS_TLS`               | Redis; `REDIS_TLS=true` for ElastiCache in-transit encryption |
 | `AUTH_ENABLED`                                           | `false` disables token verification (local dev only)          |
 | `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_COGNITO_DOMAIN`   | Cognito settings (shared by API and web; no secrets)          |
+| `ADMIN_GROUP`                                            | Cognito group allowed to use Log Review (default `admin`)     |
+| `APP_VERSION`                                            | version written to chat logs (default: `apps/api` version)    |
 
 ### Cognito setup
 
@@ -66,6 +68,10 @@ Key variables (see `.env.example` for all):
 3. Set `OIDC_ISSUER=https://cognito-idp.<region>.amazonaws.com/<userPoolId>`, `OIDC_CLIENT_ID=<app client id>`, `OIDC_COGNITO_DOMAIN=https://<prefix>.auth.<region>.amazoncognito.com`, and `AUTH_ENABLED=true`.
 
 The web app sends the Cognito **ID token** as `Authorization: Bearer …`; the API validates signature (JWKS), issuer and client id. Mark open endpoints with `@Public()`.
+
+### Chat logs and Log Review
+
+Every chat session and every event of a run (user input, LLM tool use, LLM end turn, agent tool result, run error) is written to `chat_log_*` tables with agent, agent config version/hash, app version and response times; the log is independent of the chat tables and survives deleting a session. Users in the `ADMIN_GROUP` Cognito group see a **Log Review** page (`/log-review`, API under `/admin/chat-logs`) to rate sessions and messages Good/Bad, add comments and tags, and record the expected result and difference of a message. With `AUTH_ENABLED=false` everyone is treated as admin.
 
 ## Development
 
