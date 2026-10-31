@@ -2,6 +2,7 @@ import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { Repository } from 'typeorm';
 import type { ChatSession } from '../database/entities/chat-session.entity';
 import type { User } from '../database/entities/user.entity';
+import type { AgentRunLog } from './agent.log';
 
 /**
  * How tools get what the LLM must not supply (ids, repositories, ...):
@@ -16,6 +17,8 @@ export interface AgentRunContext {
   idToken?: string;
   /** The session's active agent (see agent.config.ts); unknown names start at the selector. */
   agent?: string;
+  /** Receives the run's model replies and tool results for the chat log. */
+  log?: AgentRunLog;
   /** Called after `renameSession` stored a new name, so the caller can tell the client at once. */
   onSessionRenamed?: () => void | Promise<void>;
 }
