@@ -36,5 +36,16 @@ export function upsertReview(reviews: ChatLogReview[], saved: ChatLogReview): Ch
     : [...reviews, saved];
 }
 
+/** Indents JSON text; anything that is not JSON is returned unchanged. */
+export function prettyJson(text: string): string {
+  const t = text.trim();
+  if (!t.startsWith('{') && !t.startsWith('[')) return text;
+  try {
+    return JSON.stringify(JSON.parse(t), null, 2);
+  } catch {
+    return text;
+  }
+}
+
 export const formatDuration = (ms: number | null) =>
   ms === null ? '' : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;

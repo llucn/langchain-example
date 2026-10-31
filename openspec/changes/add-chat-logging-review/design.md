@@ -11,7 +11,7 @@ This change delivers step one (logging + manual review) and shapes the data so l
 **Goals:**
 - Record every session and every message event of a run in structured, queryable tables, each event attributable to user, agent, exact agent config and app version, with response times.
 - Logs are independent of the chat tables and survive session deletion.
-- Admin-only review UI: browse sessions, see the event timeline, rate sessions and messages Good/Bad with comments, tags, expected result and difference.
+- Admin-only review UI: browse sessions, see the event timeline, rate sessions and messages Good/Bad with comments, tags and expected result (no rating on user input).
 - A review model that already fits non-human reviewers and several reviewers per target.
 - Logging can never fail or noticeably slow a chat request.
 
@@ -62,11 +62,11 @@ Mapping to the four required types: the user's message → `user_input`; an AI m
 
 ### 3. Reviews are a separate table, never edits to the log
 
-`chat_log_reviews`: `id`, `sessionId` FK, `messageId` FK null (null = review of the whole session), `rating` (`good` \| `bad`), `tags` text[], `comment` text null, `expectedResult` text null, `difference` text null, `reviewerType` (`human` \| `llm`), `reviewerSub`, `reviewerName`, `evaluator` varchar null (for `llm`: model + prompt version, future), `createdAt`, `updatedAt`.
+`chat_log_reviews`: `id`, `sessionId` FK, `messageId` FK null (null = review of the whole session), `rating` (`good` \| `bad`), `tags` text[], `comment` text null, `expectedResult` text null, `difference` text null (kept for later; not exposed by the API or UI), `reviewerType` (`human` \| `llm`), `reviewerSub`, `reviewerName`, `evaluator` varchar null (for `llm`: model + prompt version, future), `createdAt`, `updatedAt`.
 
 - Logs stay immutable; reviews can be added by several reviewers and, later, by an LLM evaluator without touching log rows. Aggregates (good/bad counts per session, per agent config) are queries.
 - One human review per reviewer per target, enforced by two partial unique indexes (session-level on `(sessionId, reviewerSub)` where `messageId IS NULL`; message-level on `(messageId, reviewerSub)`), so Good/Bad clicks upsert. When auth is off `reviewerSub` is the literal `anonymous`.
-- `expectedResult` and `difference` are only accepted on message reviews. Both are free text: for an `llm_tool_use` they describe the expected call (e.g. wrong agent routed, missing argument), for an `llm_end_turn` the expected answer. They are the seed of later regression/evaluation cases.
+- `expectedResult` is only accepted on message reviews. It is free text: for an `llm_tool_use` they describe the expected call (e.g. wrong agent routed, missing argument), for an `llm_end_turn` the expected answer. They are the seed of later regression/evaluation cases.
 - `tags` is a fixed vocabulary in `@app/shared` (e.g. `wrong_routing`, `wrong_tool`, `bad_tool_args`, `hallucination`, `incomplete`, `wrong_language`, `tone`, `too_verbose`, `other`) so failures can be counted by cause later; free text stays in `comment`.
 
 *Alternative:* review columns on the log rows (rejected: single reviewer, mutable log, no place for LLM reviews).
@@ -112,7 +112,7 @@ Runtime parts of the prompt (selector turn counter, routing summary; see `compos
 
 ### 9. Log Review page
 
-Route `/log-review` (admin only). Left: filter bar and paged session list with rating badges. Right: the selected session as a timeline grouped by turn; each event shows type badge, agent name + config version, time, duration and content (tool-call args and tool results collapsible). Session header and each event have **Good** / **Bad** buttons; clicking opens a form (comment, tags; on messages also expected result and difference) and saves immediately, showing the reviewer's current rating highlighted. Other reviewers' reviews are shown read-only. Uses existing design-system components (`FilterBar`, `Pagination`, `Badge`, `Modal`, `Card`, `EmptyState`, `Skeleton`).
+Route `/log-review` (admin only). Left: filter bar and paged session list with rating badges. Right: the selected session as a timeline grouped by turn; each event shows type badge, agent name + config version, time, duration and content (tool use and tool result events show only tool name and tool call id; the indented JSON args / result open on click; user input events have no rating buttons). Session header and each event have **Good** / **Bad** buttons; clicking opens a form (comment, tags; on messages also expected result) and saves immediately, showing the reviewer's current rating highlighted. Other reviewers' reviews are shown read-only. Uses existing design-system components (`FilterBar`, `Pagination`, `Badge`, `Modal`, `Card`, `EmptyState`, `Skeleton`).
 
 ## Risks / Trade-offs
 

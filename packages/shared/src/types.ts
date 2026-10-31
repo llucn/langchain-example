@@ -119,7 +119,6 @@ export interface ChatLogReview {
   tags: ReviewTag[];
   comment: string | null;
   expectedResult: string | null;
-  difference: string | null;
   reviewerType: 'human' | 'llm';
   reviewerSub: string;
   reviewerName: string | null;
@@ -158,6 +157,4 @@ export interface SaveChatLogReviewRequest {
   comment?: string;
   /** Message reviews only. */
   expectedResult?: string;
-  /** Message reviews only. */
-  difference?: string;
 }

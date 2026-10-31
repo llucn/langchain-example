@@ -1,6 +1,24 @@
 import type { ChatLogMessage, ChatLogReview } from '@app/shared';
 import { describe, expect, it } from 'vitest';
-import { formatDuration, groupByTurn, ownReview, reviewsOf, upsertReview } from './chatLogView';
+import {
+  formatDuration,
+  groupByTurn,
+  ownReview,
+  prettyJson,
+  reviewsOf,
+  upsertReview,
+} from './chatLogView';
+
+describe('prettyJson', () => {
+  it('indents JSON objects and arrays', () => {
+    expect(prettyJson('{"a":1,"b":[2]}')).toBe('{\n  "a": 1,\n  "b": [\n    2\n  ]\n}');
+  });
+
+  it('leaves other text unchanged', () => {
+    expect(prettyJson('plain text')).toBe('plain text');
+    expect(prettyJson('{broken')).toBe('{broken');
+  });
+});
 
 const ev = (seq: number, turnId: string) => ({ seq, turnId }) as ChatLogMessage;
 const review = (id: string, messageId: string | null, sub: string) =>

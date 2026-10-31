@@ -28,7 +28,7 @@ import {
   saveMessageReview,
   saveSessionReview,
 } from '../lib/chatLog';
-import { formatDuration, groupByTurn, reviewsOf, upsertReview } from '../lib/chatLogView';
+import { formatDuration, groupByTurn, prettyJson, reviewsOf, upsertReview } from '../lib/chatLogView';
 
 const PAGE_SIZE = 20;
 
@@ -452,25 +452,36 @@ function EventCard({
         </details>
       )}
 
-      {m.toolCalls?.map((c) => (
-        <div key={c.id} style={{ fontSize: 13, marginBottom: 6 }}>
-          <code>{c.name}</code>
-          <span style={{ color: 'var(--muted)' }}> · {c.id}</span>
-          <pre style={preStyle}>{JSON.stringify(c.args, null, 2)}</pre>
-        </div>
-      ))}
-
-      {m.type === 'agent_tool_result' && (
-        <div style={{ fontSize: 13, marginBottom: 4 }}>
-          <code>{m.toolName}</code>
-          <span style={{ color: 'var(--muted)' }}>
-            {' '}
-            · answers {callName ?? 'call'} {m.toolCallId}
-          </span>
+      {m.type === 'llm_tool_use' && m.content && (
+        <div style={{ fontSize: 13, marginBottom: 6 }}>
+          <span style={{ color: 'var(--muted)' }}>Text</span>
+          <pre style={preStyle}>{m.content}</pre>
         </div>
       )}
 
-      {m.content &&
+      {m.toolCalls?.map((c) => (
+        <div key={c.id} style={{ fontSize: 13, marginBottom: 6 }}>
+          <details>
+            <summary style={{ cursor: 'pointer' }}>
+              <code>{c.name}</code>
+              <span style={{ color: 'var(--muted)' }}> · {c.id}</span>
+            </summary>
+            <pre style={preStyle}>{JSON.stringify(c.args, null, 2)}</pre>
+          </details>
+        </div>
+      ))}
+
+      {m.type === 'agent_tool_result' ? (
+        <details style={{ fontSize: 13, marginBottom: 4 }}>
+          <summary style={{ cursor: 'pointer' }}>
+            <code>{m.toolName ?? callName}</code>
+            <span style={{ color: 'var(--muted)' }}> · {m.toolCallId}</span>
+          </summary>
+          <pre style={preStyle}>{prettyJson(m.content)}</pre>
+        </details>
+      ) : (
+        m.type !== 'llm_tool_use' &&
+        m.content &&
         (long ? (
           <details>
             <summary style={{ cursor: 'pointer', fontSize: 13 }}>
@@ -480,7 +491,8 @@ function EventCard({
           </details>
         ) : (
           <pre style={preStyle}>{m.content}</pre>
-        ))}
+        ))
+      )}
 
       {Object.keys(m.metadata).length > 0 && (
         <details style={{ fontSize: 12, color: 'var(--muted)' }}>
@@ -489,21 +501,23 @@ function EventCard({
         </details>
       )}
 
-      <div style={{ marginTop: 8 }}>
-        <ReviewControl
-          label="Message"
-          messageLevel
-          reviews={reviewsOf(reviews, m.id)}
-          reviewerSub={reviewerSub}
-          onSave={async (req) =>
-            onReviewsChange(upsertReview(reviews, await saveMessageReview(m.id, req)))
-          }
-          onRemove={async (id) => {
-            await deleteMessageReview(m.id);
-            onReviewsChange(reviews.filter((r) => r.id !== id));
-          }}
-        />
-      </div>
+      {m.type !== 'user_input' && (
+        <div style={{ marginTop: 8 }}>
+          <ReviewControl
+            label="Message"
+            messageLevel
+            reviews={reviewsOf(reviews, m.id)}
+            reviewerSub={reviewerSub}
+            onSave={async (req) =>
+              onReviewsChange(upsertReview(reviews, await saveMessageReview(m.id, req)))
+            }
+            onRemove={async (id) => {
+              await deleteMessageReview(m.id);
+              onReviewsChange(reviews.filter((r) => r.id !== id));
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -537,7 +551,6 @@ function ReviewControl({
   const [comment, setComment] = useState('');
   const [tags, setTags] = useState<ReviewTag[]>([]);
   const [expected, setExpected] = useState('');
-  const [difference, setDifference] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -545,7 +558,6 @@ function ReviewControl({
     setComment(own?.comment ?? '');
     setTags((own?.tags as ReviewTag[]) ?? []);
     setExpected(own?.expectedResult ?? '');
-    setDifference(own?.difference ?? '');
     setError(null);
     setEditing(rating);
   }
@@ -571,7 +583,7 @@ function ReviewControl({
           ? {
               comment,
               tags,
-              ...(messageLevel ? { expectedResult: expected, difference } : {}),
+              ...(messageLevel ? { expectedResult: expected } : {}),
             }
           : {}),
       }),
@@ -658,24 +670,14 @@ function ReviewControl({
             style={fieldStyle}
           />
           {messageLevel && (
-            <>
-              <textarea
-                aria-label="Expected result"
-                placeholder="Expected result (what the agent should have said or done)"
-                rows={2}
-                value={expected}
-                onChange={(e) => setExpected(e.target.value)}
-                style={fieldStyle}
-              />
-              <textarea
-                aria-label="Difference"
-                placeholder="Difference between expected and actual"
-                rows={2}
-                value={difference}
-                onChange={(e) => setDifference(e.target.value)}
-                style={fieldStyle}
-              />
-            </>
+            <textarea
+              aria-label="Expected result"
+              placeholder="Expected result (what the agent should have said or done)"
+              rows={2}
+              value={expected}
+              onChange={(e) => setExpected(e.target.value)}
+              style={fieldStyle}
+            />
           )}
           <div style={{ display: 'flex', gap: 8 }}>
             <Button size="sm" loading={busy} onClick={() => void save(editing, true)}>
@@ -720,11 +722,6 @@ function ReviewControl({
           {r.expectedResult && (
             <div>
               <em>Expected:</em> {r.expectedResult}
-            </div>
-          )}
-          {r.difference && (
-            <div>
-              <em>Difference:</em> {r.difference}
             </div>
           )}
         </div>

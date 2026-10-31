@@ -77,7 +77,7 @@ describe('ChatLogReviewService.saveReview', () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it('creates a message review with the message session, expected result and difference', async () => {
+  it('creates a message review with the message session and expected result', async () => {
     const { svc } = make({ message: { sessionId: 's9' } });
     const r = await svc.saveReview(
       { kind: 'message', id: 'm1' },
@@ -85,7 +85,6 @@ describe('ChatLogReviewService.saveReview', () => {
         rating: 'bad',
         comment: ' wrong ',
         expectedResult: 'A',
-        difference: 'B',
         tags: ['wrong_tool'],
       },
       reviewer,
@@ -97,7 +96,6 @@ describe('ChatLogReviewService.saveReview', () => {
         rating: 'bad',
         comment: 'wrong',
         expectedResult: 'A',
-        difference: 'B',
         reviewerType: 'human',
         reviewerSub: 'u1',
       }),

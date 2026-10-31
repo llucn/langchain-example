@@ -71,7 +71,7 @@ The web app sends the Cognito **ID token** as `Authorization: Bearer …`; the A
 
 ### Chat logs and Log Review
 
-Every chat session and every event of a run (user input, LLM tool use, LLM end turn, agent tool result, run error) is written to `chat_log_*` tables with agent, agent config version/hash, app version and response times; the log is independent of the chat tables and survives deleting a session. Users in the `ADMIN_GROUP` Cognito group see a **Log Review** page (`/log-review`, API under `/admin/chat-logs`) to rate sessions and messages Good/Bad, add comments and tags, and record the expected result and difference of a message. With `AUTH_ENABLED=false` everyone is treated as admin.
+Every chat session and every event of a run (user input, LLM tool use, LLM end turn, agent tool result, run error) is written to `chat_log_*` tables with agent, agent config version/hash, app version and response times; the log is independent of the chat tables and survives deleting a session. Users in the `ADMIN_GROUP` Cognito group see a **Log Review** page (`/log-review`, API under `/admin/chat-logs`) to rate sessions and messages Good/Bad, add comments and tags, and record the expected result of a message. With `AUTH_ENABLED=false` everyone is treated as admin.
 
 ## Development
 

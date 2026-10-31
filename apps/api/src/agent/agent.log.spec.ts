@@ -32,6 +32,26 @@ describe('logStep', () => {
     );
   });
 
+  it('keeps the text block of a tool-use reply next to its tool calls', () => {
+    const log = sink();
+    const msg = new AIMessage({
+      content: [
+        { type: 'thinking', thinking: 'plan' },
+        { type: 'text', text: 'Let me look that up.' },
+        { type: 'tool_use', id: 'c2', name: 'work_order_get', input: { id: 'WO-1' } },
+      ],
+      tool_calls: [{ id: 'c2', name: 'work_order_get', args: { id: 'WO-1' } }],
+    });
+    logStep(log, 'model_request', 'work_order_inquiry', [msg], ctx());
+    expect(log.onLlm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Let me look that up.',
+        thinking: 'plan',
+        toolCalls: [{ id: 'c2', name: 'work_order_get', args: { id: 'WO-1' } }],
+      }),
+    );
+  });
+
   it('reports a final answer, with the routing summary for downstream agents', () => {
     const log = sink();
     logStep(log, 'model_request', 'work_order_inquiry', [new AIMessage('Done.')], ctx());

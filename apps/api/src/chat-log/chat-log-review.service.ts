@@ -59,7 +59,6 @@ export const toReviewDto = (r: ChatLogReview): ChatLogReviewDto => ({
   tags: r.tags as ReviewTag[],
   comment: r.comment,
   expectedResult: r.expectedResult,
-  difference: r.difference,
   reviewerType: r.reviewerType,
   reviewerSub: r.reviewerSub,
   reviewerName: r.reviewerName,
@@ -183,8 +182,8 @@ export class ChatLogReviewService {
     dto: SaveReviewDto,
     reviewer: Reviewer,
   ): Promise<ChatLogReviewDto> {
-    if (target.kind === 'session' && (dto.expectedResult || dto.difference)) {
-      throw new BadRequestException('expectedResult and difference only apply to message reviews');
+    if (target.kind === 'session' && dto.expectedResult) {
+      throw new BadRequestException('expectedResult only applies to message reviews');
     }
     let sessionId = target.id;
     if (target.kind === 'message') {
@@ -200,7 +199,6 @@ export class ChatLogReviewService {
       tags: dto.tags ?? [],
       comment: dto.comment?.trim() || null,
       expectedResult: dto.expectedResult?.trim() || null,
-      difference: dto.difference?.trim() || null,
       reviewerName: reviewer.name,
     };
     const existing = await this.findOwn(target, reviewer);

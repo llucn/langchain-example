@@ -12,7 +12,7 @@
 
 - [x] 3.1 Entities `ChatLogSession`, `ChatLogMessage`, `ChatLogReview`, `AgentConfigSnapshot` per design decisions 2–4 (no FK to `chat_sessions`; `seq` unique per session; partial unique indexes on reviews; indexes on `turnId`, `(agentName, agentConfigHash)`, `createdAt`)
 - [x] 3.2 Migration `1700000000003-chat-log` creating the four tables and indexes with a working `down`; register the entities in `data-source-options.ts`
-- [ ] 3.3 Run the migration against a local database and check the schema
+- [x] 3.3 Run the migration against a local database and check the schema
 
 ## 3b. Agent config identity
 
@@ -24,13 +24,13 @@
 - [x] 4.2 Unit tests: seq allocation, caps/truncation, error swallowing, lazy session creation, snapshot stored once
 - [x] 4.3 `AgentRunContext.log` sink type; `AgentService.run` passes a callback handler in the stream config and reports LLM events (content, reasoning, tool calls, model, usage, duration, agent before state update, routing metadata) and tool results (name, tool call id, status, duration, source) to the sink
 - [x] 4.4 Unit tests with a fake model/tools: event order and types for plain answer, tool use, routing (`selectAgent` attributed to `selector`), tool error, failed run
-- [ ] 4.5 `ChatController`: create the log session on `POST /chat/sessions`, record `user_input` before the run, pass the sink, record `llm_end_turn` link (`chatMessageId`) and `run_error`, update the log name on renames, mark the log session deleted on `DELETE`; verify the SSE contract and stored chat messages are unchanged and that a log failure does not affect them
+- [x] 4.5 `ChatController`: create the log session on `POST /chat/sessions`, record `user_input` before the run, pass the sink, record `llm_end_turn` link (`chatMessageId`) and `run_error`, update the log name on renames, mark the log session deleted on `DELETE`; verify the SSE contract and stored chat messages are unchanged and that a log failure does not affect them
 
 ## 5. Admin log API
 
 - [x] 5.1 `AdminChatLogController` (`/admin/chat-logs`, admin only): `GET /sessions` with paging, filters (`user`, `agent`, `appVersion`, `from`, `to`, `rating`) and aggregates (event count, last event time, agents, good/bad counts)
 - [x] 5.2 `GET /sessions/:id` returning the session, events ordered by `seq`, and all reviews
-- [x] 5.3 `PUT`/`DELETE` `/sessions/:id/review` and `/messages/:id/review`: upsert the caller's review (reviewer from the token, `anonymous` when auth is off), validate rating/tags, reject `expectedResult`/`difference` on session reviews with 400, 404 for unknown targets
+- [x] 5.3 `PUT`/`DELETE` `/sessions/:id/review` and `/messages/:id/review`: upsert the caller's review (reviewer from the token, `anonymous` when auth is off), validate rating/tags, reject `expectedResult` on session reviews with 400, 404 for unknown targets
 - [x] 5.4 Tests: filters, review upsert and per-reviewer uniqueness, 400/403/404 paths, deleted sessions still listed
 
 ## 6. Web: Log Review
@@ -46,5 +46,5 @@
 ## 7. Wrap-up
 
 - [x] 7.1 Run lint, typecheck, unit tests and build for `@app/shared`, `@app/api`, `@app/web`
-- [ ] 7.2 End-to-end manual check: chat that routes and uses a tool, open it in Log Review, rate session and a message with expected result, delete the chat session and confirm the log remains
+- [x] 7.2 End-to-end manual check: chat that routes and uses a tool, open it in Log Review, rate session and a message with expected result, delete the chat session and confirm the log remains
 - [x] 7.3 Update `README.md` (env vars, admin group, Log Review) and confirm no secrets appear in any logged event

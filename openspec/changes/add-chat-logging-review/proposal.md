@@ -17,7 +17,7 @@ The chat agents are tuned by hand and nobody can tell how well they work: what u
 
 ### New Capabilities
 - `chat-logging`: what is recorded for sessions and message events, how types, agent/config attribution and response times are captured, ordering and grouping of events, retention after session deletion, and failure isolation.
-- `chat-log-review`: the admin Log Review API and page — listing/filtering logged sessions, event timeline, Good/Bad reviews with comments and tags on sessions and messages, expected result and difference on messages.
+- `chat-log-review`: the admin Log Review API and page — listing/filtering logged sessions, event timeline, Good/Bad reviews with comments and tags on sessions and messages, expected result on messages.
 - `admin-access`: determining the `admin` role from the token and restricting admin APIs and pages to it.
 
 ### Modified Capabilities

@@ -36,12 +36,6 @@ export class SaveReviewDto {
   @IsString()
   @MaxLength(8000)
   expectedResult?: string;
-
-  @ApiPropertyOptional({ description: 'Message reviews only' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(8000)
-  difference?: string;
 }
 
 export class ListSessionsQueryDto {
