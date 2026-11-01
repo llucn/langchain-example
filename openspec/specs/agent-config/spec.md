@@ -1,11 +1,14 @@
-## ADDED Requirements
+# agent-config Specification
 
+## Purpose
+TBD - created by archiving change add-versioned-agent-config. Update Purpose after archive.
+## Requirements
 ### Requirement: Agent Config source
 The system SHALL load its Agent Config from the location in `CONFIG_SOURCE`, which is either the HTTPS URL of a GitHub repository optionally followed by `//` and a sub-path inside the repository (e.g. `https://github.com/llucn/config.git//langchain-example`), or a path to a local directory. The system SHALL read a GitHub repository through the GitHub REST API (commit lookup and tarball download) and SHALL NOT require the `git` command. For a GitHub source the system SHALL also require `CONFIG_REF`, a branch name, tag name or commit ID. The GitHub API base is derived from the repository host (`https://api.github.com` for `github.com`, `https://<host>/api/v3` otherwise) unless `CONFIG_GITHUB_API_URL` is set. The system SHALL read `config.yml` and the files `agents/<name>.yml` from the sub-path (or the repository root when none is given). The system SHALL reject a source URL that contains embedded credentials, a non-HTTPS URL and a URL that is not a repository URL.
 
 #### Scenario: Repository with sub-path
-- **WHEN** `CONFIG_SOURCE=https://github.com/llucn/config.git//langchain-example` and `CONFIG_REF=v1`
-- **THEN** the system reads `langchain-example/config.yml` and `langchain-example/agents/*.yml` from the commit that tag `v1` points to
+- **WHEN** `CONFIG_SOURCE=https://github.com/llucn/config.git//langchain-example` and `CONFIG_REF=v1.0`
+- **THEN** the system reads `langchain-example/config.yml` and `langchain-example/agents/*.yml` from the commit that tag `v1.0` points to
 
 #### Scenario: Missing settings
 - **WHEN** `CONFIG_SOURCE` is unset, or is a GitHub URL and `CONFIG_REF` is unset
@@ -23,7 +26,7 @@ The system SHALL resolve `CONFIG_REF` to a full 40-character commit ID through t
 - **THEN** the config is read from commit `abc…` and `main` is recorded as the version
 
 #### Scenario: Annotated tag
-- **WHEN** `CONFIG_REF=v1` names an annotated tag
+- **WHEN** `CONFIG_REF=v1.0` names an annotated tag
 - **THEN** the commit the tag points to is used
 
 #### Scenario: Abbreviated commit ID
@@ -168,8 +171,8 @@ The system SHALL load the config before it accepts requests and SHALL fail start
 The `agentConfigVersion` and `agentConfigHash` recorded for an agent run or chat log message SHALL be the `version` (`CONFIG_REF`) and commit ID (`hash`) of the config snapshot in use, so that `(agentName, agentConfigHash)` identifies a stored snapshot row.
 
 #### Scenario: Log attribution
-- **WHEN** an agent answers a message while the config is commit `abc…` loaded from `CONFIG_REF=v1`
-- **THEN** its log rows carry version `v1` and hash `abc…`, and `agent_config_snapshots` has a row for `(abc…, <agent name>)` with the definition used
+- **WHEN** an agent answers a message while the config is commit `abc…` loaded from `CONFIG_REF=v1.0`
+- **THEN** its log rows carry version `v1.0` and hash `abc…`, and `agent_config_snapshots` has a row for `(abc…, <agent name>)` with the definition used
 
 ### Requirement: Sample config
 The repository SHALL contain, under `docs/config-sample`, a config tree equal in behaviour to the previous hard-coded agent configuration: `langchain-example/config.yml` and `langchain-example/agents/{selector,fault_report,work_order_inquiry,other}.yml`, with the previous model name, token limit, thinking settings, tools, prompts and global constants, plus a README describing how to initialise the config repository and the environment variables.
@@ -177,3 +180,4 @@ The repository SHALL contain, under `docs/config-sample`, a config tree equal in
 #### Scenario: Behavioural equality
 - **WHEN** the sample is loaded
 - **THEN** each agent's model, `maxTokens`, `thinking`, `outputConfig`, `tools` and `systemPrompt`, and the global settings, equal the values of the previous hard-coded definitions
+

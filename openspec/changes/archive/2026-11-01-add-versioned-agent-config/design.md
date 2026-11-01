@@ -124,9 +124,9 @@ A Nest async provider loads the config during bootstrap (the app does not listen
 
 ## Migration Plan
 
-1. Create the config repository content from `docs/config-sample/` (commit, tag e.g. `v1`), create a read-only token.
-2. Set `CONFIG_SOURCE`, `CONFIG_REF=v1`, `CONFIG_GITHUB_TOKEN` (`MODEL_*` stay as today; `MCP_*_URL` are no longer read by the API) in every environment; no `git` binary or image change is needed, only outbound HTTPS to GitHub.
-3. Deploy the API with `DB_MIGRATIONS_RUN=true` (or run `migration:run`); first start fetches `v1` and fills `agent_config_snapshots`; later starts hit the cache.
+1. Create the config repository content from `docs/config-sample/` (commit, tag e.g. `v1.0`), create a read-only token.
+2. Set `CONFIG_SOURCE`, `CONFIG_REF=v1.0`, `CONFIG_GITHUB_TOKEN` (`MODEL_*` stay as today; `MCP_*_URL` are no longer read by the API) in every environment; no `git` binary or image change is needed, only outbound HTTPS to GitHub.
+3. Deploy the API with `DB_MIGRATIONS_RUN=true` (or run `migration:run`); first start fetches `v1.0` and fills `agent_config_snapshots`; later starts hit the cache.
 4. Rollback: redeploy the previous API image and previous env (the old code ignores the new variables; old snapshot rows keep their legacy shape-compatible columns; the migration `down` restores the old primary key only if no commit-keyed duplicates exist — otherwise those rows are deleted first).
 
 ## Open Questions

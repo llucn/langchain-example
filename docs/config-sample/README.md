@@ -20,14 +20,14 @@ route to (mention it in the selector prompt so it knows when to use it).
 ## Initialise the config repository
 
 1. Copy `langchain-example/` into the root of your (private) GitHub config repository and commit.
-2. Tag the commit, e.g. `git tag v1 && git push origin v1` (a tag or commit ID is an immutable
+2. Tag the commit, e.g. `git tag v1.0 && git push origin v1.0` (a tag or commit ID is an immutable
    config; a branch is mutable and is picked up at the next API start).
 3. Create a read-only token (fine-grained PAT with _Contents: Read_ on that repository).
 4. Configure the API (`.env`):
 
 ```
 CONFIG_SOURCE=https://github.com/llucn/config.git//langchain-example
-CONFIG_REF=v1
+CONFIG_REF=v1.0
 CONFIG_GITHUB_TOKEN=github_pat_...
 ```
 
