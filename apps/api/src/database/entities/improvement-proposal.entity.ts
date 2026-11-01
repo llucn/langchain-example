@@ -55,6 +55,17 @@ export class ImprovementProposal {
   @Column({ type: 'boolean', default: false })
   inventoryAvailable: boolean;
 
+  /** A target file changed on the default branch since the proposal was computed. */
+  @Column({ type: 'boolean', default: false })
+  stale: boolean;
+
+  /** Set when publishing starts (it is the claim that keeps a second request out) and kept after. */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  branch: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  prUrl: string | null;
+
   @Index()
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

@@ -22,7 +22,7 @@ route to (mention it in the selector prompt so it knows when to use it).
 1. Copy `langchain-example/` into the root of your (private) GitHub config repository and commit.
 2. Tag the commit, e.g. `git tag v1.0 && git push origin v1.0` (a tag or commit ID is an immutable
    config; a branch is mutable and is picked up at the next API start).
-3. Create a read-only token (fine-grained PAT with _Contents: Read_ on that repository).
+3. Create a token (fine-grained PAT with _Contents: Read_ on that repository). To let admins open pull requests from improvement proposals, give it _Contents: Read and write_ and _Pull requests: Read and write_ instead; the API never merges or writes the default branch.
 4. Configure the API (`.env`):
 
 ```

@@ -1,10 +1,13 @@
-import type { ChatLogReview } from '@app/shared';
+import type { ChatLogReview, ImprovementReplay } from '@app/shared';
 import { describe, expect, it } from 'vitest';
 import {
   canDiscard,
   canSelectForImprovement,
   diffLineKind,
   isGenerating,
+  regressionCount,
+  replayTally,
+  sortReplays,
   pruneSelection,
   shortCommit,
   toggleSelection,
@@ -73,5 +76,34 @@ describe('diffLineKind', () => {
     expect(diffLineKind('+new')).toBe('add');
     expect(diffLineKind('-old')).toBe('del');
     expect(diffLineKind(' same')).toBe('ctx');
+  });
+});
+
+const replay = (id: string, verdict: string | null, error: string | null = null) =>
+  ({
+    id,
+    verdict: verdict ? { verdict, reason: 'r' } : null,
+    error,
+  }) as unknown as ImprovementReplay;
+
+describe('replay helpers', () => {
+  const list = [
+    replay('a', 'same'),
+    replay('b', null, 'boom'),
+    replay('c', 'regressed'),
+    replay('d', 'improved'),
+  ];
+
+  it('puts regressions first and failures last', () => {
+    expect(sortReplays(list).map((r) => r.id)).toEqual(['c', 'd', 'a', 'b']);
+    expect(list[0].id).toBe('a');
+  });
+
+  it('counts regressions and tallies verdicts', () => {
+    expect(regressionCount(list)).toBe(1);
+    expect(replayTally(list)).toBe(
+      '4 replayed: 1 improved, 1 same, 1 regressed, 0 inconclusive, 1 failed.',
+    );
+    expect(replayTally([])).toBe('No replay results.');
   });
 });

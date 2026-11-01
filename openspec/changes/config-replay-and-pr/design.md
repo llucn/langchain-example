@@ -21,14 +21,18 @@ Replay must not touch MCP servers: tools such as `work_order_createWorkOrder` ch
 
 ### 1. Replay swaps the tool layer, not the agent
 
-`AgentService.run` is refactored so the tool source is injected (`McpConnection`-shaped: `tools`, `toolsByServer`, `close`) and logging and persistence are hooks. The refactor lands first and must leave the existing `agent.service` specs green. Replay supplies a `RecordedMcp` whose tools have the original names and input schemas (from the proposal's tool inventory and the recorded calls) and never open a connection. For each call:
+`AgentService.run` gets one optional per-run input, `mcp?: McpConnection` (`tools`, `toolsByServer`, `close`); when given it is used instead of `connectMcp`. That is the only change to the chat path, and it must leave the existing `agent.service` and multi-agent specs green. Replay builds a **separate `AgentService`** whose `AgentConfigService` is the old or the proposed config (the proposed one assembled from the proposal's file texts through the existing render and validation path, not from the repository) and whose `sessions` repository is a stub: `update` records the call and writes nothing, which turns `renameSession` into a recorder without touching the tool. `selectAgent` runs as is (pure). The replay never persists a chat session or chat log.
 
-- exact match on tool name and canonical JSON of arguments against the session's recorded tool results → return the recorded result (each recorded result is consumed once, in recorded order);
+The `RecordedMcp` connection is built from the proposal's tool inventory (names, descriptions and JSON input schemas, grouped by server), because the new config may call a tool the log never did (`createWorkOrder`) and the agent must have that tool to call it. For each call:
+
+- exact match on tool name and canonical JSON of arguments against the session's recorded tool results, read **unclipped** from `chat_log_messages` (the clipped copies in the case evidence are not used), each result consumed once in recorded order → return the recorded result;
 - otherwise → return a marked placeholder (`[replay] no recorded result for this call; it was not executed`) and record the call as `unrecorded`.
 
-The second case matters: the change we want (calling `createWorkOrder`) has no recorded result by construction. The call itself, with its arguments, is the evidence the judge evaluates against the expected result. Local tools: `selectAgent` runs as is (pure); `renameSession` is replaced by a recorder (no session is touched). The replay never persists a chat session or chat log.
+The second case matters: the change we want has no recorded result by construction. The call itself, with its arguments, is the evidence the judge evaluates against the expected result.
 
-Replay input is the reviewed turn: history before it comes from the log (not regenerated) and the user message of the turn is re-sent. The entry agent is the reviewed event's agent, except for `routing` diagnoses where the selector is the entry. Both runs share history, tool stubs and `maxContextMessages`. The proposed config is built from the proposal's file texts through the existing render and validation path, not from the repository.
+Replay input is the reviewed turn: history before it comes from the log (unclipped, trimmed to `maxContextMessages`, not regenerated) and the user message of the turn is re-sent. The entry agent is the reviewed event's agent, except for `routing` diagnoses where the selector is the entry. Both runs share history, tool stubs and context limit.
+
+**Dependency on the tool inventory:** replay needs the inventory to build the tools. When it could not be read (for example authentication is off in development, so there is no token for the MCP servers), replay is skipped for that proposal with a note; the proposal still becomes `ready`.
 
 ### 2. Judge compares, humans decide
 
@@ -56,7 +60,8 @@ After the Proposal step produces a diff the service replays target cases then th
 - [LLM non-determinism makes verdicts noisy] → Single run per side is stated; both sides share inputs; verdicts only inform.
 - [Unbounded regression set grows cost and time as Good reviews accumulate] → Concurrency limit, per-replay timeout and errors isolated per case; most recent first; revisit if the count grows (a cap can be added later without changing the data model).
 - [One token with write permission reads and writes the config repository] → Only branches and PRs are created, never the default branch or a merge; branch protection on the default branch remains the real gate; the token is never logged or stored with proposals; the owner confirms its permissions.
-- [Refactoring `AgentService.run` can regress chat] → Behavior-preserving refactor first, covered by existing specs, before replay is built on it.
+- [The optional `mcp` input to `AgentService.run` can regress chat] → Minimal, behavior-preserving, covered by the existing specs before replay is built on it.
+- [Replay is unavailable without a tool inventory] → Skipped with a note; run generation on an environment with authentication to get replay results.
 - [Stale proposals overwrite newer config edits] → The default-branch content check answers 409 and marks the proposal stale.
 
 ## Migration Plan

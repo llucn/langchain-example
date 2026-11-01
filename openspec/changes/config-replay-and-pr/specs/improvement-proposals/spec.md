@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Replay during generation
-After a proposal with a diff has been built, the system SHALL replay its target cases and the regression set (see `config-replay`) before the proposal becomes `ready`, and SHALL store the results with the proposal. A proposal without a diff SHALL skip replay.
+After a proposal with a diff has been built, the system SHALL replay its target cases and the regression set (see `config-replay`) before the proposal becomes `ready`, and SHALL store the results with the proposal. A proposal without a diff, or whose tool inventory could not be read, SHALL skip replay and say so in its notes.
 
 #### Scenario: Replay before ready
 - **WHEN** a proposal with a diff has been built
@@ -10,6 +10,10 @@ After a proposal with a diff has been built, the system SHALL replay its target 
 #### Scenario: Notes only
 - **WHEN** a proposal has notes and no diff
 - **THEN** no replay runs and the proposal becomes `ready`
+
+#### Scenario: No tool inventory
+- **WHEN** the proposal has a diff but the tool inventory could not be read
+- **THEN** no replay runs, a note says why, and the proposal becomes `ready`
 
 ### Requirement: Pull request after human confirmation
 The system SHALL open a pull request in the config repository for a `ready` proposal with a diff only after an admin confirms in a dialog that shows the diff, rationale and replay results. It SHALL read the repository's default branch, verify that every file to change still has the content the proposal was computed from (else respond 409 and mark the proposal stale), create the branch `improvement/<short-id>`, create one commit with the proposed files, and open a pull request whose description contains the rationale, the review ids and the replay summary (regressions first). It SHALL NOT merge the pull request or push to the default branch. The status change to `published`, with branch and pull request URL, SHALL be atomic so that a repeated request opens no second pull request. Publishing SHALL use `CONFIG_GITHUB_TOKEN` (see `agent-config`).

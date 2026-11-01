@@ -1,7 +1,7 @@
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
 import { AgentConfigService } from '../agent-config/agent-config.service';
 import { sampleAgentConfig } from '../agent-config/sample-config';
-import { AgentService, foldStep, modelConnection, trimHistory } from './agent.service';
+import { acquireMcp, AgentService, foldStep, modelConnection, trimHistory } from './agent.service';
 
 describe('trimHistory', () => {
   it('keeps only the most recent messages', () => {
@@ -68,5 +68,29 @@ describe('foldStep', () => {
 
   it('takes the final text as the answer', () => {
     expect(foldStep('model', [new AIMessage('It is 18°C.')]).answer).toBe('It is 18°C.');
+  });
+});
+
+describe('acquireMcp', () => {
+  const conn = () => ({ tools: [], toolsByServer: {}, close: jest.fn(async () => undefined) });
+
+  it('uses an injected connection, never connects and never closes it', async () => {
+    const injected = conn();
+    const connect = jest.fn();
+    const { mcp, release } = await acquireMcp({ mcp: injected }, { a: 'http://x' }, connect);
+    await release();
+    expect(mcp).toBe(injected);
+    expect(connect).not.toHaveBeenCalled();
+    expect(injected.close).not.toHaveBeenCalled();
+  });
+
+  it('connects with the visitor token and closes what it opened', async () => {
+    const opened = conn();
+    const connect = jest.fn(async () => opened);
+    const { mcp, release } = await acquireMcp({ idToken: 'tok' }, { a: 'http://x' }, connect);
+    expect(connect).toHaveBeenCalledWith({ a: 'http://x' }, 'tok');
+    await release();
+    expect(mcp).toBe(opened);
+    expect(opened.close).toHaveBeenCalledTimes(1);
   });
 });

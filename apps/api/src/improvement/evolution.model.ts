@@ -38,7 +38,10 @@ export function createEvolutionCaller(config: AgentConfigService, env: AppEnv): 
   });
   return {
     async call<T>({ name, schema, system, user }: StructuredCall<T>): Promise<T> {
-      const structured = model.withStructuredOutput(schema as never, { name, method: 'jsonSchema' });
+      const structured = model.withStructuredOutput(schema as never, {
+        name,
+        method: 'jsonSchema',
+      });
       return (await structured.invoke([new SystemMessage(system), new HumanMessage(user)], {
         signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
       })) as T;

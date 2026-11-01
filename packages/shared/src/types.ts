@@ -3,6 +3,8 @@ import type {
   CHAT_LOG_REVIEW_STATES,
   DIAGNOSIS_LAYERS,
   IMPROVEMENT_STATUSES,
+  REPLAY_KINDS,
+  REPLAY_VERDICTS,
   REVIEW_RATINGS,
   REVIEW_TAGS,
 } from './constants';
@@ -222,6 +224,41 @@ export interface ImprovementFile {
   proposed: string;
 }
 
+export type ReplayVerdictKind = (typeof REPLAY_VERDICTS)[number];
+export type ReplayKind = (typeof REPLAY_KINDS)[number];
+
+/** A tool call the replayed agent made; `unrecorded` calls were not executed (see `config-replay`). */
+export interface ReplayCall {
+  name: string;
+  args: unknown;
+  unrecorded: boolean;
+}
+
+export interface ReplayOutput {
+  /** Final answer of the replayed turn. */
+  text: string;
+  /** Agent that was active at the end of the turn. */
+  agent: string;
+  /** Ordered tool calls of the whole turn, local and MCP. */
+  toolCalls: ReplayCall[];
+}
+
+export interface ReplayVerdict {
+  verdict: ReplayVerdictKind;
+  reason: string;
+}
+
+/** Old and new output of one replayed review, each side run once, with the judge's verdict. */
+export interface ImprovementReplay {
+  id: string;
+  reviewId: string;
+  kind: ReplayKind;
+  old: ReplayOutput | null;
+  new: ReplayOutput | null;
+  verdict: ReplayVerdict | null;
+  error: string | null;
+}
+
 export interface ImprovementProposalSummary {
   id: string;
   agentName: string;
@@ -243,7 +280,15 @@ export interface ImprovementProposal extends Omit<ImprovementProposalSummary, 'c
   error: string | null;
   /** False when the MCP tool inventory could not be read, so tool diagnoses were not possible. */
   inventoryAvailable: boolean;
+  /** The config files changed on the default branch since the proposal was computed. */
+  stale: boolean;
+  /** Branch and pull request once published. */
+  branch: string | null;
+  prUrl: string | null;
+  /** "Create pull request" is possible: GitHub source, token, ready, with a diff, not stale. */
+  publishAvailable: boolean;
   cases: ImprovementCase[];
+  replays: ImprovementReplay[];
 }
 
 export interface CreateImprovementRequest {

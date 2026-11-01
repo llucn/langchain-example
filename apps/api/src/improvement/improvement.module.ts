@@ -5,6 +5,7 @@ import { ChatLogMessage } from '../database/entities/chat-log-message.entity';
 import { ChatLogReview } from '../database/entities/chat-log-review.entity';
 import { ImprovementCase } from '../database/entities/improvement-case.entity';
 import { ImprovementProposal } from '../database/entities/improvement-proposal.entity';
+import { ImprovementReplay } from '../database/entities/improvement-replay.entity';
 import { ImprovementController } from './improvement.controller';
 import { ImprovementService } from './improvement.service';
 
@@ -13,6 +14,7 @@ import { ImprovementService } from './improvement.service';
     TypeOrmModule.forFeature([
       ImprovementProposal,
       ImprovementCase,
+      ImprovementReplay,
       ChatLogReview,
       ChatLogMessage,
       AgentConfigSnapshot,

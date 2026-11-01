@@ -7,6 +7,7 @@ import { ChatLogMessage } from './entities/chat-log-message.entity';
 import { ChatLogReview } from './entities/chat-log-review.entity';
 import { ChatLogSession } from './entities/chat-log-session.entity';
 import { ImprovementCase } from './entities/improvement-case.entity';
+import { ImprovementReplay } from './entities/improvement-replay.entity';
 import { ImprovementProposal } from './entities/improvement-proposal.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { ChatSession } from './entities/chat-session.entity';
@@ -39,6 +40,7 @@ export function buildDataSourceOptions(env: AppEnv): DataSourceOptions {
       AgentConfigSnapshot,
       ImprovementProposal,
       ImprovementCase,
+      ImprovementReplay,
     ],
     migrations: [join(__dirname, 'migrations', `*.${ext}`)],
     migrationsRun: db.migrationsRun,
