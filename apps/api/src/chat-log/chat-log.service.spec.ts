@@ -1,4 +1,4 @@
-import { AGENTS } from '../agent/agent.config';
+import { sampleAgentConfig } from '../agent-config/sample-config';
 import { ChatLogService, LOG_FIELD_CAP, cap, logUserOf } from './chat-log.service';
 
 const makeService = () => {
@@ -38,6 +38,7 @@ const makeService = () => {
     sessions as never,
     messages as never,
     snapshots as never,
+    sampleAgentConfig(),
   );
   return { svc, inserted, snapshotInserts, messages, sessions };
 };
@@ -109,8 +110,9 @@ describe('ChatLogRun', () => {
       expect.objectContaining({ appVersion: '1.2.3', userSub: 'u1', durationMs: null }),
     );
     expect(inserted[1]).toEqual(expect.objectContaining({ durationMs: 12, thinking: 'think' }));
-    expect(inserted[3].agentConfigVersion).toBe(AGENTS.other.version);
-    expect(inserted[3].agentConfigHash).toMatch(/^[0-9a-f]{64}$/);
+    const config = sampleAgentConfig();
+    expect(inserted[3].agentConfigVersion).toBe(config.version);
+    expect(inserted[3].agentConfigHash).toBe(config.hash);
     // one snapshot per distinct agent, not per event
     expect(snapshotInserts).toHaveLength(2);
   });

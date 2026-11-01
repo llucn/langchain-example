@@ -1,22 +1,24 @@
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
-import { AGENT_MAX_CONTEXT_MESSAGES } from './agent.config';
-import { AgentService, foldStep, trimHistory } from './agent.service';
+import { AgentConfigService } from '../agent-config/agent-config.service';
+import { sampleAgentConfig } from '../agent-config/sample-config';
+import { AgentService, foldStep, modelConnection, trimHistory } from './agent.service';
 
 describe('trimHistory', () => {
   it('keeps only the most recent messages', () => {
-    const h = Array.from({ length: AGENT_MAX_CONTEXT_MESSAGES + 5 }, (_, i) => ({
+    const max = sampleAgentConfig().settings.maxContextMessages;
+    const h = Array.from({ length: max + 5 }, (_, i) => ({
       role: 'user' as const,
       content: String(i),
     }));
-    const t = trimHistory(h);
-    expect(t).toHaveLength(AGENT_MAX_CONTEXT_MESSAGES);
+    const t = trimHistory(h, max);
+    expect(t).toHaveLength(max);
     expect(t[t.length - 1].content).toBe(String(h.length - 1));
   });
 });
 
 describe('AgentService config', () => {
-  const svc = (model: { baseUrl?: string; apiKey?: string }) =>
-    new AgentService({ model } as never, {} as never, {} as never);
+  const svc = (model: { baseUrl?: string; apiKey?: string }, config = sampleAgentConfig()) =>
+    new AgentService({ model } as never, {} as never, {} as never, config);
 
   it('names the missing variable', async () => {
     await expect(svc({ apiKey: 'k' }).run([], { sessionId: 's' }, () => {})).rejects.toThrow(
@@ -25,6 +27,25 @@ describe('AgentService config', () => {
     await expect(
       svc({ baseUrl: 'http://x' }).run([], { sessionId: 's' }, () => {}),
     ).rejects.toThrow('MODEL_API_KEY');
+  });
+});
+
+describe('modelConnection', () => {
+  const env = { model: { baseUrl: 'http://env', apiKey: 'env-key' } } as never;
+
+  it('uses the environment without a model block', () => {
+    expect(modelConnection(sampleAgentConfig(), env)).toEqual({
+      baseUrl: 'http://env',
+      apiKey: 'env-key',
+    });
+  });
+
+  it('lets the config model block replace the environment', () => {
+    const config = new AgentConfigService({
+      ...sampleAgentConfig().config,
+      model: { baseUrl: 'http://cfg', apiKey: 'cfg-key' },
+    });
+    expect(modelConnection(config, env)).toEqual({ baseUrl: 'http://cfg', apiKey: 'cfg-key' });
   });
 });
 

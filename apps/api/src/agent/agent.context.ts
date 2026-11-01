@@ -2,6 +2,7 @@ import type { StructuredToolInterface } from '@langchain/core/tools';
 import type { Repository } from 'typeorm';
 import type { ChatSession } from '../database/entities/chat-session.entity';
 import type { User } from '../database/entities/user.entity';
+import type { AgentConfigService } from '../agent-config/agent-config.service';
 import type { AgentRunLog } from './agent.log';
 
 /**
@@ -15,7 +16,7 @@ export interface AgentRunContext {
   sessionId: string;
   /** The visitor's JWT, forwarded to the MCP servers; absent when auth is disabled. */
   idToken?: string;
-  /** The session's active agent (see agent.config.ts); unknown names start at the selector. */
+  /** The session's active agent (see the Agent Config); unknown names start at the selector. */
   agent?: string;
   /** Receives the run's model replies and tool results for the chat log. */
   log?: AgentRunLog;
@@ -26,6 +27,7 @@ export interface AgentRunContext {
 export interface AgentToolDeps {
   users: Repository<User>;
   sessions: Repository<ChatSession>;
+  config: AgentConfigService;
 }
 
 export type AgentToolContext = AgentRunContext & AgentToolDeps;

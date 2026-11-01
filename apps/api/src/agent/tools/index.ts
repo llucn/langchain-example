@@ -9,3 +9,6 @@ import { createSelectAgentTool } from './select-agent.tool';
 export const TOOL_FACTORIES: AgentToolFactory[] = [createRenameSessionTool, createSelectAgentTool];
 
 export const buildTools = (ctx: AgentToolContext) => TOOL_FACTORIES.map((f) => f(ctx));
+
+/** Names of the registered local tools; agent definitions may only list these. */
+export const LOCAL_TOOL_NAMES: readonly string[] = ['renameSession', 'selectAgent'];

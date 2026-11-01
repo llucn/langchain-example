@@ -1,4 +1,5 @@
-import { buildTools } from './index';
+import { sampleAgentConfig } from '../../agent-config/sample-config';
+import { buildTools, LOCAL_TOOL_NAMES } from './index';
 import type { Repository } from 'typeorm';
 import type { ChatSession } from '../../database/entities/chat-session.entity';
 import type { User } from '../../database/entities/user.entity';
@@ -91,9 +92,13 @@ describe('renameSession', () => {
 
 describe('tool registry', () => {
   it('registers renameSession and selectAgent', () => {
-    const names = buildTools({ sessions: {}, users: {}, sessionId: 's' } as never).map(
-      (t) => t.name,
-    );
+    const names = buildTools({
+      sessions: {},
+      users: {},
+      sessionId: 's',
+      config: sampleAgentConfig(),
+    } as never).map((t) => t.name);
     expect(names).toEqual(['renameSession', 'selectAgent']);
+    expect(names).toEqual([...LOCAL_TOOL_NAMES]);
   });
 });

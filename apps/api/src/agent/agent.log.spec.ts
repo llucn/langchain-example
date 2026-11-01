@@ -11,6 +11,7 @@ describe('logStep', () => {
     ]),
     selectorTurn: 2,
     routingSummary: 'Status of WO-1',
+    defaultModel: () => 'claude-sonnet-5-5',
   });
   const sink = () => ({ onLlm: jest.fn(), onToolResult: jest.fn() });
 
