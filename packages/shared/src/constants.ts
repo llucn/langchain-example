@@ -22,7 +22,25 @@ export const REVIEW_TAGS = [
   'wrong_language',
   'tone',
   'too_verbose',
+  'stop_condition',
+  'missing_capability',
   'other',
 ] as const;
 
 export const CHAT_LOG_REVIEW_STATES = ['unreviewed', 'good', 'bad'] as const;
+
+/** Root-cause layers of a diagnosed Bad review (see the `improvement-proposals` capability). */
+export const DIAGNOSIS_LAYERS = [
+  'prompt',
+  'tool_missing',
+  'tool_config',
+  'settings',
+  'routing',
+  'label_unclear',
+  'insufficient_evidence',
+] as const;
+
+export const IMPROVEMENT_STATUSES = ['generating', 'ready', 'failed', 'discarded'] as const;
+
+/** Most Bad reviews one generation takes. */
+export const MAX_IMPROVEMENT_REVIEWS = 10;

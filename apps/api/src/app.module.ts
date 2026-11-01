@@ -4,6 +4,7 @@ import { AgentConfigModule } from './agent-config/agent-config.module';
 import { ChatModule } from './chat/chat.module';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
+import { ImprovementModule } from './improvement/improvement.module';
 import { HealthModule } from './health/health.module';
 import { RedisModule } from './redis/redis.module';
 
@@ -16,6 +17,7 @@ import { RedisModule } from './redis/redis.module';
     AuthModule,
     ChatModule,
     HealthModule,
+    ImprovementModule,
   ],
 })
 export class AppModule {}

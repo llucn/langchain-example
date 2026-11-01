@@ -14,6 +14,7 @@ import { ChatLogSession } from './chat-log-session.entity';
 /**
  * A judgement of a logged session (`messageId` null) or message. Kept apart from the log so the
  * log stays immutable and several reviewers, later also an LLM, can review the same target.
+ * The table still has an unused, unmapped `difference` column (kept; it is not part of the model).
  */
 @Entity('chat_log_reviews')
 @Index(['sessionId', 'reviewerSub'], {
@@ -52,9 +53,6 @@ export class ChatLogReview {
 
   @Column({ type: 'text', nullable: true })
   expectedResult: string | null;
-
-  @Column({ type: 'text', nullable: true })
-  difference: string | null;
 
   @Column({ type: 'varchar', length: 8, default: 'human' })
   reviewerType: 'human' | 'llm';

@@ -1,6 +1,8 @@
 import type {
   CHAT_LOG_MESSAGE_TYPES,
   CHAT_LOG_REVIEW_STATES,
+  DIAGNOSIS_LAYERS,
+  IMPROVEMENT_STATUSES,
   REVIEW_RATINGS,
   REVIEW_TAGS,
 } from './constants';
@@ -157,4 +159,93 @@ export interface SaveChatLogReviewRequest {
   comment?: string;
   /** Message reviews only. */
   expectedResult?: string;
+}
+
+export type DiagnosisLayer = (typeof DIAGNOSIS_LAYERS)[number];
+export type ImprovementStatus = (typeof IMPROVEMENT_STATUSES)[number];
+
+export interface Diagnosis {
+  layer: DiagnosisLayer;
+  rootCause: string;
+  /** Event sequence numbers and short quotes that support the root cause. */
+  evidence: string[];
+  /** 0 to 1. */
+  confidence: number;
+  suggestedAction: string;
+}
+
+/** One logged event as shown to the evolution agents. */
+export interface CaseEvent {
+  seq: number;
+  type: ChatLogMessageType;
+  agentName: string | null;
+  content: string;
+  toolName: string | null;
+  toolCallId: string | null;
+  toolCalls: ChatLogToolCall[] | null;
+  status: 'ok' | 'error';
+}
+
+/** What a case is built from; stored with the case so the proposal stays explainable. */
+export interface CaseEvidence {
+  reviewedSeq: number;
+  agentName: string;
+  configHash: string | null;
+  configVersion: string | null;
+  /** Definition of the agent in the config commit the event ran under; null when unknown. */
+  definition: Record<string, unknown> | null;
+  /** Global settings of that commit. */
+  settings: Record<string, unknown> | null;
+  review: {
+    tags: ReviewTag[];
+    comment: string | null;
+    expectedResult: string | null;
+    reviewerName: string | null;
+  };
+  /** Final answers and user inputs of the turns before the reviewed one. */
+  history: Pick<CaseEvent, 'seq' | 'type' | 'content'>[];
+  /** The reviewed turn up to and including the reviewed event. */
+  turn: CaseEvent[];
+}
+
+export interface ImprovementCase {
+  id: string;
+  reviewId: string;
+  evidence: CaseEvidence;
+  diagnosis: Diagnosis | null;
+}
+
+export interface ImprovementFile {
+  /** Path inside the config directory, e.g. `agents/fault_report.yml`. */
+  path: string;
+  base: string;
+  proposed: string;
+}
+
+export interface ImprovementProposalSummary {
+  id: string;
+  agentName: string;
+  status: ImprovementStatus;
+  baseCommit: string;
+  createdByName: string | null;
+  caseCount: number;
+  hasDiff: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImprovementProposal extends Omit<ImprovementProposalSummary, 'caseCount'> {
+  baseSource: string;
+  files: ImprovementFile[];
+  diff: string;
+  rationale: string;
+  notes: string[];
+  error: string | null;
+  /** False when the MCP tool inventory could not be read, so tool diagnoses were not possible. */
+  inventoryAvailable: boolean;
+  cases: ImprovementCase[];
+}
+
+export interface CreateImprovementRequest {
+  reviewIds: string[];
 }
