@@ -12,18 +12,19 @@ import { Repository } from 'typeorm';
 import { APP_ENV, type AppEnv } from '../config/env';
 import { ChatSession } from '../database/entities/chat-session.entity';
 import { User } from '../database/entities/user.entity';
-import {
-  AGENT_MAX_CONTEXT_MESSAGES,
-  AGENT_RECURSION_LIMIT,
-  AGENTS,
-  resolveAgent,
-  type AgentName,
-} from './agent.config';
+import { AgentConfigService } from '../agent-config/agent-config.service';
+import type { AgentName } from './agent.config';
 import type { AgentRunContext } from './agent.context';
 import { TimingHandler, type AgentRunLog } from './agent.log';
 import { connectMcp } from './mcp/mcp.client';
 import { createMultiAgentMiddleware } from './multi-agent.middleware';
 import { buildTools } from './tools';
+
+/** The Agent Config's `model` block wins over `MODEL_BASE_URL` / `MODEL_API_KEY`. */
+export const modelConnection = (config: AgentConfigService, env: AppEnv) => ({
+  baseUrl: config.model?.baseUrl ?? env.model.baseUrl,
+  apiKey: config.model?.apiKey ?? env.model.apiKey,
+});
 
 export interface HistoryMessage {
   role: 'user' | 'assistant';
@@ -50,8 +51,7 @@ const reasoning = (content: unknown): string =>
     : '';
 
 /** Keeps the most recent messages that fit the fixed context limit. */
-export const trimHistory = (history: HistoryMessage[]) =>
-  history.slice(-AGENT_MAX_CONTEXT_MESSAGES);
+export const trimHistory = (history: HistoryMessage[], max: number) => history.slice(-max);
 
 interface StepState {
   messages?: BaseMessage[];
@@ -87,6 +87,8 @@ interface LogStepContext {
   /** User turns the selector has seen (the history's user messages). */
   selectorTurn: number;
   routingSummary: string;
+  /** Model of an agent's definition, for replies that do not report one. */
+  defaultModel: (agent: AgentName) => string;
 }
 
 /** Reports one graph step to the chat log: a model reply, or the tool results of a tools node. */
@@ -121,7 +123,7 @@ export function logStep(
       content: text(ai.content),
       thinking: reasoning(ai.content).trim() || null,
       toolCalls: (ai.tool_calls ?? []).map((c) => ({ id: c.id ?? '', name: c.name, args: c.args })),
-      model: typeof meta.model === 'string' ? meta.model : AGENTS[agent].model,
+      model: typeof meta.model === 'string' ? meta.model : ctx.defaultModel(agent),
       startedAt: timing?.startedAt ?? null,
       durationMs: timing?.durationMs ?? null,
       metadata: {
@@ -145,6 +147,7 @@ export class AgentService {
     @Inject(APP_ENV) private readonly env: AppEnv,
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(ChatSession) private readonly sessions: Repository<ChatSession>,
+    private readonly agentConfig: AgentConfigService,
   ) {}
 
   /**
@@ -156,17 +159,19 @@ export class AgentService {
     ctx: AgentRunContext,
     onThinking: (delta: string) => void | Promise<void>,
   ): Promise<{ answer: string; thinking: string; agent: AgentName }> {
-    const { baseUrl, apiKey } = this.env.model;
-    if (!baseUrl) throw new Error('MODEL_BASE_URL is not set');
-    if (!apiKey) throw new Error('MODEL_API_KEY is not set');
+    const cfg = this.agentConfig;
+    const { baseUrl, apiKey } = modelConnection(cfg, this.env);
+    if (!baseUrl)
+      throw new Error('MODEL_BASE_URL is not set (nor model.baseUrl in the Agent Config)');
+    if (!apiKey) throw new Error('MODEL_API_KEY is not set (nor model.apiKey in the Agent Config)');
 
-    const mcp = await connectMcp(this.env.mcp.servers, ctx.idToken);
+    const mcp = await connectMcp(cfg.mcpServers, ctx.idToken);
     try {
       const models = new Map<AgentName, ChatAnthropic>();
       const modelFor = (name: AgentName) => {
         let model = models.get(name);
         if (!model) {
-          const def = AGENTS[name];
+          const def = cfg.definition(name);
           model = new ChatAnthropic({
             model: def.model,
             apiKey,
@@ -180,18 +185,28 @@ export class AgentService {
         return model;
       };
 
-      const localTools = buildTools({ ...ctx, users: this.users, sessions: this.sessions });
-      let current = resolveAgent(ctx.agent);
+      const localTools = buildTools({
+        ...ctx,
+        users: this.users,
+        sessions: this.sessions,
+        config: cfg,
+      });
+      let current = cfg.resolveAgent(ctx.agent);
       const agent = createAgent({
         model: modelFor(current),
         tools: [...localTools, ...mcp.tools],
         middleware: [
-          createMultiAgentMiddleware({ modelFor, localTools, mcpByServer: mcp.toolsByServer }),
+          createMultiAgentMiddleware({
+            config: cfg,
+            modelFor,
+            localTools,
+            mcpByServer: mcp.toolsByServer,
+          }),
         ],
       });
 
-      const messages: BaseMessage[] = trimHistory(history).map((m) =>
-        m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content),
+      const messages: BaseMessage[] = trimHistory(history, cfg.settings.maxContextMessages).map(
+        (m) => (m.role === 'user' ? new HumanMessage(m.content) : new AIMessage(m.content)),
       );
 
       let thinking = '';
@@ -212,13 +227,14 @@ export class AgentService {
         ]),
         selectorTurn: messages.filter((m) => m.type === 'human').length,
         routingSummary: '',
+        defaultModel: (agent) => cfg.definition(agent).model,
       };
 
       const stream = await agent.stream(
         { messages, currentAgent: current },
         {
           streamMode: 'updates',
-          recursionLimit: AGENT_RECURSION_LIMIT,
+          recursionLimit: cfg.settings.recursionLimit,
           callbacks: [logCtx.timing],
         },
       );
@@ -226,7 +242,7 @@ export class AgentService {
         for (const [node, state] of Object.entries(update as Record<string, StepState>)) {
           // The agent that produced this step: a hand-over in `state` applies to the next one.
           const producer = current;
-          if (state?.currentAgent) current = resolveAgent(state.currentAgent);
+          if (state?.currentAgent) current = cfg.resolveAgent(state.currentAgent);
           const step = foldStep(node, state?.messages ?? []);
           if (ctx.log) {
             try {

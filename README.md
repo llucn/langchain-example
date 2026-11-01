@@ -23,6 +23,7 @@ Monorepo skeleton: **NestJS** API + **React** web + shared TypeScript package, w
 │   │   ├── src/
 │   │   │   ├── main.ts           bootstrap: prefix /api, validation, Swagger
 │   │   │   ├── config/           env loading (root .env) + typed config
+│   │   │   ├── agent-config/     Agent Config from a GitHub repo: fetch, validate, snapshot cache
 │   │   │   ├── database/         TypeORM options, data-source, entities, migrations, scripts
 │   │   │   ├── redis/            ioredis provider
 │   │   │   ├── auth/             Cognito JWT guard (global), @Public(), /api/auth/me
@@ -49,17 +50,18 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 
 Key variables (see `.env.example` for all):
 
-| Variable                                                 | Purpose                                                       |
-| -------------------------------------------------------- | ------------------------------------------------------------- |
-| `API_PORT`, `WEB_PORT`, `HTTP_PORT`                      | API (3000), web dev (4200), Traefik (80)                      |
-| `DB_HOST/PORT/NAME/USER/PASSWORD`                        | PostgreSQL connection                                         |
-| `DB_SSL`, `DB_SSL_REJECT_UNAUTHORIZED`, `DB_SSL_CA_PATH` | SSL for AWS RDS (use the RDS CA bundle path for verification) |
-| `DB_MIGRATIONS_RUN`                                      | run pending migrations when the API starts                    |
-| `REDIS_HOST/PORT/PASSWORD/DB`, `REDIS_TLS`               | Redis; `REDIS_TLS=true` for ElastiCache in-transit encryption |
-| `AUTH_ENABLED`                                           | `false` disables token verification (local dev only)          |
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_COGNITO_DOMAIN`   | Cognito settings (shared by API and web; no secrets)          |
-| `ADMIN_GROUP`                                            | Cognito group allowed to use Log Review (default `admin`)     |
-| `APP_VERSION`                                            | version written to chat logs (default: `apps/api` version)    |
+| Variable                                                 | Purpose                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
+| `API_PORT`, `WEB_PORT`, `HTTP_PORT`                      | API (3000), web dev (4200), Traefik (80)                          |
+| `DB_HOST/PORT/NAME/USER/PASSWORD`                        | PostgreSQL connection                                             |
+| `DB_SSL`, `DB_SSL_REJECT_UNAUTHORIZED`, `DB_SSL_CA_PATH` | SSL for AWS RDS (use the RDS CA bundle path for verification)     |
+| `DB_MIGRATIONS_RUN`                                      | run pending migrations when the API starts                        |
+| `REDIS_HOST/PORT/PASSWORD/DB`, `REDIS_TLS`               | Redis; `REDIS_TLS=true` for ElastiCache in-transit encryption     |
+| `AUTH_ENABLED`                                           | `false` disables token verification (local dev only)              |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_COGNITO_DOMAIN`   | Cognito settings (shared by API and web; no secrets)              |
+| `ADMIN_GROUP`                                            | Cognito group allowed to use Log Review (default `admin`)         |
+| `APP_VERSION`                                            | version written to chat logs (default: `apps/api` version)        |
+| `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_TOKEN`     | Agent Config repository (`url//folder`), branch/tag/commit, token |
 
 ### Cognito setup
 
@@ -68,6 +70,10 @@ Key variables (see `.env.example` for all):
 3. Set `OIDC_ISSUER=https://cognito-idp.<region>.amazonaws.com/<userPoolId>`, `OIDC_CLIENT_ID=<app client id>`, `OIDC_COGNITO_DOMAIN=https://<prefix>.auth.<region>.amazoncognito.com`, and `AUTH_ENABLED=true`.
 
 The web app sends the Cognito **ID token** as `Authorization: Bearer …`; the API validates signature (JWKS), issuer and client id. Mark open endpoints with `@Public()`.
+
+### Agent Config
+
+The agents (prompts, model settings, tools), the MCP server URLs and the agent parameters are not in code: at startup the API reads them from a GitHub repository through the GitHub API (`CONFIG_SOURCE` = `https://github.com/<owner>/<repo>.git//<folder>`, `CONFIG_REF` = branch, tag or commit ID, `CONFIG_GITHUB_TOKEN` for a private repository). The ref is resolved to a commit ID; the validated config is cached per commit in `agent_config_snapshots`, so a restart on the same commit does not download anything, and a moved branch or tag is detected at the next start. If GitHub is unavailable the newest snapshot of the same ref is used; an invalid or missing config stops the start. Chat logs record the ref and commit ID of the config an agent ran with. `docs/config-sample/` is the initial content for the config repository (see its README); `CONFIG_SOURCE` may also be a local directory for development, e.g. `CONFIG_SOURCE=docs/config-sample/langchain-example`.
 
 ### Chat logs and Log Review
 

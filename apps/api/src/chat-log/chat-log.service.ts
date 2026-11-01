@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { ChatLogMessageType } from '@app/shared';
 import { Repository } from 'typeorm';
-import { resolveAgent } from '../agent/agent.config';
+import { AgentConfigService } from '../agent-config/agent-config.service';
 import { agentConfigIdentity } from '../agent/agent.config-identity';
 import type { AgentRunLog, LlmLogEvent, ToolResultLogEvent } from '../agent/agent.log';
 import { APP_ENV, type AppEnv } from '../config/env';
@@ -65,6 +65,7 @@ export class ChatLogService {
     @InjectRepository(ChatLogMessage) private readonly messages: Repository<ChatLogMessage>,
     @InjectRepository(AgentConfigSnapshot)
     private readonly snapshots: Repository<AgentConfigSnapshot>,
+    private readonly config: AgentConfigService,
   ) {}
 
   private async safe(what: string, fn: () => Promise<unknown>): Promise<void> {
@@ -112,13 +113,17 @@ export class ChatLogService {
     user: LogUser,
     agent: string | undefined,
   ): ChatLogRun {
-    return new ChatLogRun(this, session, user, resolveAgent(agent));
+    return new ChatLogRun(this, session, user, this.config.resolveAgent(agent));
   }
 
-  /** Stores the definition the agent ran with, once per process and hash. */
+  /**
+   * Makes sure the snapshot row of the agent's config exists (the loader stores it for a
+   * repository source; a local-directory source has none), once per process.
+   */
   private async ensureConfig(agentName: string): Promise<{ version: string; hash: string }> {
-    const identity = agentConfigIdentity(resolveAgent(agentName));
-    if (!this.knownConfigs.has(identity.hash)) {
+    const identity = agentConfigIdentity(this.config, agentName);
+    const key = `${identity.hash}:${identity.agentName}`;
+    if (!this.knownConfigs.has(key)) {
       await this.snapshots
         .createQueryBuilder()
         .insert()
@@ -126,11 +131,12 @@ export class ChatLogService {
           hash: identity.hash,
           agentName: identity.agentName,
           version: identity.version,
+          source: this.config.source,
           definition: identity.definition as never, // jsonb: TypeORM's deep-partial type rejects `unknown`
         })
         .orIgnore()
         .execute();
-      this.knownConfigs.add(identity.hash);
+      this.knownConfigs.add(key);
     }
     return identity;
   }

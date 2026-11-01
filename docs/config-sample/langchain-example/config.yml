@@ -1,0 +1,29 @@
+# Variables for ${env.NAME} placeholders in agents/*.yml (resolved after the YAML is parsed;
+# a value that is exactly one placeholder keeps its type, e.g. maxTokens stays a number).
+env:
+  AGENT_MODEL: claude-sonnet-5-5
+  AGENT_MAX_TOKENS: 4096
+  # Adaptive thinking effort: low | medium | high
+  AGENT_THINKING_EFFORT: medium
+
+# Remote MCP servers (name -> URL). Agents reference them by name in `tools`.
+mcpServers:
+  user: 'https://d2vyv1n4ekgnt0.cloudfront.net/api/mcp/user'
+  asset: 'https://d2vyv1n4ekgnt0.cloudfront.net/api/mcp/asset'
+  location: 'https://d2vyv1n4ekgnt0.cloudfront.net/api/mcp/location'
+  work_order: 'https://d2vyv1n4ekgnt0.cloudfront.net/api/mcp/work-order'
+
+# Optional; the values below are the defaults.
+settings:
+  maxContextMessages: 20
+  recursionLimit: 10
+  selector:
+    # User turns the selector may spend clarifying before it must route (to `other` if unclear).
+    maxTurns: 5
+    # Below this confidence `selectAgent` is rejected until the last selector turn.
+    minConfidence: 0.5
+
+# Optional: overrides MODEL_BASE_URL / MODEL_API_KEY of the API environment.
+# model:
+#   baseUrl: https://api.anthropic.com
+#   apiKey: sk-ant-...

@@ -1,5 +1,3 @@
-name: app
-
 services:
   traefik:
     image: traefik:v3.6

@@ -32,17 +32,17 @@ export interface AppEnv {
   /** Version recorded in chat logs. */
   app: { version: string };
   model: { baseUrl?: string; apiKey?: string };
-  /** Remote MCP servers by name; servers without a URL are omitted. */
-  mcp: { servers: Record<string, string> };
+  /** Where the Agent Config comes from (see the `agent-config` capability). */
+  agentConfig: {
+    /** GitHub repository URL with optional `//sub-path`, or a local directory. */
+    source?: string;
+    /** Branch, tag or commit ID of the repository. */
+    ref?: string;
+    githubToken?: string;
+    /** GitHub Enterprise API base; derived from the repository host when unset. */
+    githubApiUrl?: string;
+  };
 }
-
-/** MCP server name -> env variable holding its URL. */
-export const MCP_SERVER_ENV = {
-  user: 'MCP_USER_URL',
-  asset: 'MCP_ASSET_URL',
-  location: 'MCP_LOCATION_URL',
-  work_order: 'MCP_WORK_ORDER_URL',
-} as const;
 
 /** `version` of apps/api/package.json (same relative path from src/config and dist/config). */
 function packageVersion(): string {
@@ -87,12 +87,11 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
       baseUrl: env.MODEL_BASE_URL || undefined,
       apiKey: env.MODEL_API_KEY || undefined,
     },
-    mcp: {
-      servers: Object.fromEntries(
-        Object.entries(MCP_SERVER_ENV).flatMap(([name, key]) =>
-          env[key]?.trim() ? [[name, env[key]!.trim()]] : [],
-        ),
-      ),
+    agentConfig: {
+      source: env.CONFIG_SOURCE?.trim() || undefined,
+      ref: env.CONFIG_REF?.trim() || undefined,
+      githubToken: env.CONFIG_GITHUB_TOKEN?.trim() || undefined,
+      githubApiUrl: env.CONFIG_GITHUB_API_URL?.trim() || undefined,
     },
   };
 }

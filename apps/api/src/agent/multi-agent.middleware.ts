@@ -1,14 +1,8 @@
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import { createMiddleware } from 'langchain';
 import { z } from 'zod';
-import {
-  AGENTS,
-  INITIAL_AGENT,
-  resolveAgent,
-  SELECTOR_MAX_TURNS,
-  type AgentName,
-  type AgentToolRef,
-} from './agent.config';
+import type { AgentConfigService } from '../agent-config/agent-config.service';
+import { INITIAL_AGENT, type AgentName, type AgentToolRef } from './agent.config';
 import { selectorTurn } from './tools/select-agent.tool';
 
 /** Agent state added to the run: who is talking now, and what the selector handed over. */
@@ -31,15 +25,21 @@ export function visibleTools(
 }
 
 /** The agent's system prompt plus what only the running state knows (turn number, routing summary). */
-export function composePrompt(agent: AgentName, messages: { type: string }[], summary: string) {
-  const base: string = AGENTS[agent].systemPrompt;
+export function composePrompt(
+  config: AgentConfigService,
+  agent: AgentName,
+  messages: { type: string }[],
+  summary: string,
+) {
+  const base: string = config.definition(agent).systemPrompt;
+  const maxTurns = config.settings.selector.maxTurns;
   if (agent === 'selector') {
     const turn = selectorTurn(messages as never);
-    const last = turn >= SELECTOR_MAX_TURNS;
+    const last = turn >= maxTurns;
     return [
       base,
       '',
-      `This is user turn ${turn} of at most ${SELECTOR_MAX_TURNS}.` +
+      `This is user turn ${turn} of at most ${maxTurns}.` +
         (last
           ? ' This is your last turn: call `selectAgent` now, with `other` if the intent is still unclear.'
           : ''),
@@ -60,6 +60,7 @@ export function composePrompt(agent: AgentName, messages: { type: string }[], su
  * tools it lists. All tools stay registered with the agent so the tool node can run them.
  */
 export const createMultiAgentMiddleware = (deps: {
+  config: AgentConfigService;
   modelFor: (agent: AgentName) => unknown;
   localTools: StructuredToolInterface[];
   mcpByServer: Record<string, StructuredToolInterface[]>;
@@ -68,12 +69,17 @@ export const createMultiAgentMiddleware = (deps: {
     name: 'MultiAgent',
     stateSchema: multiAgentState,
     wrapModelCall: (request, handler) => {
-      const agent = resolveAgent(request.state.currentAgent);
+      const agent = deps.config.resolveAgent(request.state.currentAgent);
       return handler({
         ...request,
         model: deps.modelFor(agent) as never,
-        systemPrompt: composePrompt(agent, request.messages, request.state.routingSummary ?? ''),
-        tools: visibleTools(AGENTS[agent].tools, deps.localTools, deps.mcpByServer),
+        systemPrompt: composePrompt(
+          deps.config,
+          agent,
+          request.messages,
+          request.state.routingSummary ?? '',
+        ),
+        tools: visibleTools(deps.config.definition(agent).tools, deps.localTools, deps.mcpByServer),
       });
     },
   });

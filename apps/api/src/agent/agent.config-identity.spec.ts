@@ -1,18 +1,25 @@
-import { AGENTS } from './agent.config';
+import { sampleAgentConfig } from '../agent-config/sample-config';
 import { agentConfigIdentity } from './agent.config-identity';
 
 describe('agentConfigIdentity', () => {
-  it('is a stable SHA-256 per agent and carries the version label', () => {
-    const a = agentConfigIdentity('selector');
-    expect(a.hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(agentConfigIdentity('selector').hash).toBe(a.hash);
-    expect(a.version).toBe(AGENTS.selector.version);
-    expect(agentConfigIdentity('other').hash).not.toBe(a.hash);
+  const config = sampleAgentConfig();
+
+  it('carries the config version and commit hash, the same for every agent', () => {
+    const a = agentConfigIdentity(config, 'selector');
+    expect(a.version).toBe(config.version);
+    expect(a.hash).toBe(config.hash);
+    expect(agentConfigIdentity(config, 'other')).toEqual(
+      expect.objectContaining({ agentName: 'other', hash: a.hash, version: a.version }),
+    );
   });
 
-  it('hashes the content, not the version label', () => {
-    const { definition } = agentConfigIdentity('other');
-    expect(definition).not.toHaveProperty('version');
-    expect(definition.systemPrompt).toBe(AGENTS.other.systemPrompt);
+  it('holds the rendered definition of the agent', () => {
+    const { definition } = agentConfigIdentity(config, 'other');
+    expect(definition.systemPrompt).toBe(config.agents.other.systemPrompt);
+    expect(definition.maxTokens).toBe(4096);
+  });
+
+  it('resolves unknown names to the selector', () => {
+    expect(agentConfigIdentity(config, 'billing').agentName).toBe('selector');
   });
 });
