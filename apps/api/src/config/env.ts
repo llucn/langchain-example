@@ -32,6 +32,8 @@ export interface AppEnv {
   /** Version recorded in chat logs. */
   app: { version: string };
   model: { baseUrl?: string; apiKey?: string };
+  /** Model of the improvement agents (diagnosis and proposal); the connection is the agents'. */
+  evolution: { model: string; maxTokens: number };
   /** Where the Agent Config comes from (see the `agent-config` capability). */
   agentConfig: {
     /** GitHub repository URL with optional `//sub-path`, or a local directory. */
@@ -86,6 +88,10 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
     model: {
       baseUrl: env.MODEL_BASE_URL || undefined,
       apiKey: env.MODEL_API_KEY || undefined,
+    },
+    evolution: {
+      model: env.EVOLUTION_MODEL?.trim() || 'claude-sonnet-5-5',
+      maxTokens: Number(env.EVOLUTION_MAX_TOKENS ?? 8192),
     },
     agentConfig: {
       source: env.CONFIG_SOURCE?.trim() || undefined,

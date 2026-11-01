@@ -50,18 +50,19 @@ cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 
 Key variables (see `.env.example` for all):
 
-| Variable                                                 | Purpose                                                           |
-| -------------------------------------------------------- | ----------------------------------------------------------------- |
-| `API_PORT`, `WEB_PORT`, `HTTP_PORT`                      | API (3000), web dev (4200), Traefik (80)                          |
-| `DB_HOST/PORT/NAME/USER/PASSWORD`                        | PostgreSQL connection                                             |
-| `DB_SSL`, `DB_SSL_REJECT_UNAUTHORIZED`, `DB_SSL_CA_PATH` | SSL for AWS RDS (use the RDS CA bundle path for verification)     |
-| `DB_MIGRATIONS_RUN`                                      | run pending migrations when the API starts                        |
-| `REDIS_HOST/PORT/PASSWORD/DB`, `REDIS_TLS`               | Redis; `REDIS_TLS=true` for ElastiCache in-transit encryption     |
-| `AUTH_ENABLED`                                           | `false` disables token verification (local dev only)              |
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_COGNITO_DOMAIN`   | Cognito settings (shared by API and web; no secrets)              |
-| `ADMIN_GROUP`                                            | Cognito group allowed to use Log Review (default `admin`)         |
-| `APP_VERSION`                                            | version written to chat logs (default: `apps/api` version)        |
-| `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_TOKEN`     | Agent Config repository (`url//folder`), branch/tag/commit, token |
+| Variable                                                 | Purpose                                                             |
+| -------------------------------------------------------- | ------------------------------------------------------------------- |
+| `API_PORT`, `WEB_PORT`, `HTTP_PORT`                      | API (3000), web dev (4200), Traefik (80)                            |
+| `DB_HOST/PORT/NAME/USER/PASSWORD`                        | PostgreSQL connection                                               |
+| `DB_SSL`, `DB_SSL_REJECT_UNAUTHORIZED`, `DB_SSL_CA_PATH` | SSL for AWS RDS (use the RDS CA bundle path for verification)       |
+| `DB_MIGRATIONS_RUN`                                      | run pending migrations when the API starts                          |
+| `REDIS_HOST/PORT/PASSWORD/DB`, `REDIS_TLS`               | Redis; `REDIS_TLS=true` for ElastiCache in-transit encryption       |
+| `AUTH_ENABLED`                                           | `false` disables token verification (local dev only)                |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_COGNITO_DOMAIN`   | Cognito settings (shared by API and web; no secrets)                |
+| `ADMIN_GROUP`                                            | Cognito group allowed to use Log Review (default `admin`)           |
+| `APP_VERSION`                                            | version written to chat logs (default: `apps/api` version)          |
+| `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_TOKEN`     | Agent Config repository (`url//folder`), branch/tag/commit, token   |
+| `EVOLUTION_MODEL`, `EVOLUTION_MAX_TOKENS`                | Model of the improvement agents (default `claude-sonnet-5-5`, 8192) |
 
 ### Cognito setup
 
@@ -78,6 +79,10 @@ The agents (prompts, model settings, tools), the MCP server URLs and the agent p
 ### Chat logs and Log Review
 
 Every chat session and every event of a run (user input, LLM tool use, LLM end turn, agent tool result, run error) is written to `chat_log_*` tables with agent, agent config version/hash, app version and response times; the log is independent of the chat tables and survives deleting a session. Users in the `ADMIN_GROUP` Cognito group see a **Log Review** page (`/log-review`, API under `/admin/chat-logs`) to rate sessions and messages Good/Bad, add comments and tags, and record the expected result of a message. With `AUTH_ENABLED=false` everyone is treated as admin.
+
+### Improvement proposals
+
+Admins turn Bad message reviews into config improvements. On **Log Review**, tick "Use the Bad review ... for improvement" on up to 10 Bad message reviews and click **Generate improvement**; one proposal per agent is created (API under `/admin/improvements`, page `/improvements`). A Case Builder assembles each review (the reviewed turn, earlier turns, tool calls with recorded results, the comment and expected result, and the config snapshot the event ran under); a Diagnosis agent assigns a root-cause layer (`prompt`, `tool_missing`, `tool_config`, `settings`, `routing`, `label_unclear`, `insufficient_evidence`) using the tool inventory of the agent's MCP servers, read with the admin's token (lists only, nothing is called); a Proposal agent then writes the smallest change to the agent files and `settings`, which code checks (no `model`, `env`, `mcpServers` changes, only declared tools, valid config) before it is stored. The proposal page shows diagnoses, diff, rationale and the proposed file texts with Copy buttons; apply it to the config repository by hand, or discard it. Nothing is written to the config repository. The agents use `EVOLUTION_MODEL` over the same model connection as the chat agents.
 
 ## Development
 

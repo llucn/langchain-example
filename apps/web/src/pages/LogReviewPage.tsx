@@ -19,6 +19,7 @@ import {
 } from '@techconnect/design-system';
 import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import {
   deleteMessageReview,
@@ -28,7 +29,15 @@ import {
   saveMessageReview,
   saveSessionReview,
 } from '../lib/chatLog';
-import { formatDuration, groupByTurn, prettyJson, reviewsOf, upsertReview } from '../lib/chatLogView';
+import {
+  formatDuration,
+  groupByTurn,
+  prettyJson,
+  reviewsOf,
+  upsertReview,
+} from '../lib/chatLogView';
+import { createImprovements } from '../lib/improvements';
+import { canSelectForImprovement, pruneSelection, toggleSelection } from '../lib/improvementView';
 
 const PAGE_SIZE = 20;
 
@@ -103,6 +112,10 @@ function LogReviewContent({ reviewerSub }: { reviewerSub: string }) {
   const [detail, setDetail] = useState<ChatLogSessionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Bad message reviews picked for "Generate improvement" (kept while browsing sessions). */
+  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
+  const [generating, setGenerating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => setPage(1), [debounced]);
 
@@ -153,6 +166,7 @@ function LogReviewContent({ reviewerSub }: { reviewerSub: string }) {
 
   /** Applies a changed review list to the open session and to its row in the list. */
   function reviewsChanged(reviews: ChatLogReview[]) {
+    setPicked((cur) => pruneSelection(cur, reviews));
     setDetail((d) => (d ? { ...d, reviews } : d));
     setItems((list) =>
       list.map((s) =>
@@ -165,6 +179,20 @@ function LogReviewContent({ reviewerSub }: { reviewerSub: string }) {
           : s,
       ),
     );
+  }
+
+  async function generate() {
+    setGenerating(true);
+    setError(null);
+    try {
+      const { ids } = await createImprovements({ reviewIds: [...picked] });
+      setPicked(new Set());
+      navigate(ids.length === 1 ? `/improvements/${ids[0]}` : '/improvements');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setGenerating(false);
+    }
   }
 
   const set = (k: keyof typeof filters) => (v: string) => setFilters((f) => ({ ...f, [k]: v }));
@@ -288,6 +316,34 @@ function LogReviewContent({ reviewerSub }: { reviewerSub: string }) {
 
       <section style={{ flex: 1, minWidth: 0, overflow: 'auto', padding: 24 }}>
         {error && <p style={{ color: 'var(--red)' }}>Error: {error}</p>}
+        {picked.size > 0 && (
+          <div
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+              display: 'flex',
+              gap: 10,
+              alignItems: 'center',
+              maxWidth: 900,
+              margin: '-8px 0 12px',
+              padding: '8px 12px',
+              border: '1px solid var(--border-hi)',
+              borderRadius: 10,
+              background: 'var(--card2)',
+            }}
+          >
+            <span style={{ fontSize: 13 }}>
+              {picked.size} Bad review{picked.size === 1 ? '' : 's'} selected
+            </span>
+            <Button size="sm" disabled={generating} onClick={generate}>
+              {generating ? 'Starting…' : 'Generate improvement'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setPicked(new Set())}>
+              Clear
+            </Button>
+          </div>
+        )}
         {!selected && (
           <EmptyState
             title="Select a session"
@@ -300,6 +356,8 @@ function LogReviewContent({ reviewerSub }: { reviewerSub: string }) {
             detail={detail}
             reviewerSub={reviewerSub}
             onReviewsChange={reviewsChanged}
+            picked={picked}
+            onTogglePick={(id) => setPicked((cur) => toggleSelection(cur, id))}
           />
         )}
       </section>
@@ -311,10 +369,14 @@ function SessionDetail({
   detail,
   reviewerSub,
   onReviewsChange,
+  picked,
+  onTogglePick,
 }: {
   detail: ChatLogSessionDetail;
   reviewerSub: string;
   onReviewsChange: (reviews: ChatLogReview[]) => void;
+  picked: ReadonlySet<string>;
+  onTogglePick: (reviewId: string) => void;
 }) {
   const { session, messages, reviews } = detail;
   const toolCallAgents = new Map(
@@ -381,6 +443,8 @@ function SessionDetail({
               reviews={reviews}
               reviewerSub={reviewerSub}
               onReviewsChange={onReviewsChange}
+              picked={picked}
+              onTogglePick={onTogglePick}
             />
           ))}
         </div>
@@ -395,12 +459,16 @@ function EventCard({
   reviews,
   reviewerSub,
   onReviewsChange,
+  picked,
+  onTogglePick,
 }: {
   m: ChatLogMessage;
   callName?: string;
   reviews: ChatLogReview[];
   reviewerSub: string;
   onReviewsChange: (reviews: ChatLogReview[]) => void;
+  picked: ReadonlySet<string>;
+  onTogglePick: (reviewId: string) => void;
 }) {
   const t = TYPE_LABEL[m.type];
   const long = m.content.length > 400;
@@ -516,6 +584,29 @@ function EventCard({
               onReviewsChange(reviews.filter((r) => r.id !== id));
             }}
           />
+          {reviewsOf(reviews, m.id)
+            .filter(canSelectForImprovement)
+            .map((r) => (
+              <label
+                key={r.id}
+                style={{
+                  display: 'flex',
+                  gap: 6,
+                  alignItems: 'center',
+                  marginTop: 6,
+                  fontSize: 12,
+                  color: 'var(--muted2)',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={picked.has(r.id)}
+                  onChange={() => onTogglePick(r.id)}
+                  aria-label={`Select the Bad review by ${r.reviewerName ?? r.reviewerSub} for improvement`}
+                />
+                Use the Bad review by {r.reviewerName ?? r.reviewerSub} for improvement
+              </label>
+            ))}
         </div>
       )}
     </div>
