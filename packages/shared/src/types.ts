@@ -294,3 +294,53 @@ export interface ImprovementProposal extends Omit<ImprovementProposalSummary, 'c
 export interface CreateImprovementRequest {
   reviewIds: string[];
 }
+
+/** The settings an admin can change at runtime (see the `runtime-settings` capability). */
+export type SettingKey =
+  | 'CONFIG_GITHUB_API_URL'
+  | 'CONFIG_GITHUB_TOKEN'
+  | 'CONFIG_SOURCE'
+  | 'CONFIG_REF'
+  | 'EVOLUTION_MODEL'
+  | 'EVOLUTION_MAX_TOKENS';
+
+export type SettingOrigin = 'stored' | 'environment' | 'default';
+
+export interface SettingValue {
+  /** Effective value; undefined when unset. */
+  value?: string | number;
+  origin: SettingOrigin;
+}
+
+export interface SettingsView {
+  settings: Record<Exclude<SettingKey, 'CONFIG_GITHUB_TOKEN'>, SettingValue>;
+  /** The token is never returned, only whether one is in effect. */
+  githubToken: { set: boolean; origin: SettingOrigin };
+  /** False when SETTINGS_ENCRYPTION_KEY is missing: the token cannot be stored. */
+  tokenStorageAvailable: boolean;
+  /** The Agent Config in use. */
+  config: { version: string; hash: string; source: string };
+}
+
+export interface UpdateSettingsRequest {
+  /** A value sets it; null resets it to the environment value. Unchanged values are ignored. */
+  values?: Partial<Record<Exclude<SettingKey, 'CONFIG_GITHUB_TOKEN'>, string | number | null>>;
+  /** Empty or absent leaves the stored token unchanged. */
+  githubToken?: string;
+  clearGithubToken?: boolean;
+}
+
+export interface SettingsRefsRequest {
+  source: string;
+  apiUrl?: string;
+  /** Empty: the token in effect is used. */
+  token?: string;
+}
+
+export interface SettingsRefs {
+  /** The source is a local directory: no refs. */
+  local: boolean;
+  branches: string[];
+  tags: string[];
+  defaultBranch?: string;
+}

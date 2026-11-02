@@ -30,6 +30,11 @@ export interface LoadOptions {
   /** Test hook: replaces the GitHub client. */
   remote?: (source: ReturnType<typeof parseSource> & { kind: 'github' }) => RemoteConfig;
   github?: GitHubClientOptions;
+  /**
+   * Serve the newest snapshot of the ref when GitHub is unavailable (default true). Off when a new
+   * value must be verified against the source itself.
+   */
+  fallback?: boolean;
 }
 
 const canonical = (v: unknown): unknown =>
@@ -108,6 +113,7 @@ export async function loadAgentConfig(opts: LoadOptions): Promise<LoadedAgentCon
     : new GitHubClient(source, { token: env.githubToken, ...opts.github });
 
   const fallback = async (err: ConfigSourceError): Promise<LoadedAgentConfig> => {
+    if (opts.fallback === false) throw err;
     const rows = await store.latest(source.display, ref);
     if (!rows.length) throw err;
     logger.warn(

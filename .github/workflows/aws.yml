@@ -90,6 +90,7 @@ jobs:
           OIDC_SCOPE: ${{ vars.OIDC_SCOPE }}
           MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
           CONFIG_GITHUB_TOKEN: ${{ secrets.CONFIG_GITHUB_TOKEN }}
+          SETTINGS_ENCRYPTION_KEY: ${{ secrets.SETTINGS_ENCRYPTION_KEY }}
           CLOUDFRONT_PREFIX_LIST_ID: ${{ vars.CLOUDFRONT_PREFIX_LIST_ID }}
         run: pnpm deploy:aws -- --stage "$STAGE"
 

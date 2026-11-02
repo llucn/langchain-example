@@ -168,6 +168,20 @@ describe('loadAgentConfig (GitHub source)', () => {
       await expect(load(remote, new MemoryStore())).rejects.toThrow('GitHub down');
     });
 
+    it('does not fall back when fallback is off (verifying a new value)', async () => {
+      const { remote, store } = await warm();
+      remote.resolveError = new ConfigSourceError('unavailable', 'GitHub down');
+      await expect(
+        loadAgentConfig({
+          env: { source: SOURCE, ref: 'main' },
+          store,
+          knownLocalTools: TOOLS,
+          remote: () => remote,
+          fallback: false,
+        }),
+      ).rejects.toThrow('GitHub down');
+    });
+
     it('does not fall back for a ref that is not found', async () => {
       const { remote, store } = await warm();
       await expect(load(remote, store, 'gone')).rejects.toThrow('no ref gone');

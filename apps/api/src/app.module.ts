@@ -7,11 +7,13 @@ import { DatabaseModule } from './database/database.module';
 import { ImprovementModule } from './improvement/improvement.module';
 import { HealthModule } from './health/health.module';
 import { RedisModule } from './redis/redis.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
     ConfigModule,
     DatabaseModule,
+    SettingsModule,
     AgentConfigModule,
     RedisModule,
     AuthModule,

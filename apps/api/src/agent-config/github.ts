@@ -118,6 +118,32 @@ export class GitHubClient {
     return sha;
   }
 
+  /** Branches and tags of the repository (up to 300 each) and its default branch. */
+  async listRefs(): Promise<{ branches: string[]; tags: string[]; defaultBranch: string }> {
+    const get = async (url: string, what: string) => {
+      const res = await this.request(url, 'application/vnd.github+json', true);
+      if (!res.ok) return this.fail(res, what);
+      return (await res.json()) as Record<string, unknown>[] | Record<string, unknown>;
+    };
+    const names = async (kind: 'branches' | 'tags') => {
+      const out: string[] = [];
+      for (let page = 1; page <= 3; page++) {
+        const list = (await get(`${this.repoPath()}/${kind}?per_page=100&page=${page}`, kind)) as {
+          name: string;
+        }[];
+        out.push(...list.map((r) => r.name));
+        if (list.length < 100) break;
+      }
+      return out;
+    };
+    const repo = (await get(this.repoPath(), 'repository')) as { default_branch?: string };
+    return {
+      branches: await names('branches'),
+      tags: await names('tags'),
+      defaultBranch: repo.default_branch ?? '',
+    };
+  }
+
   /** `config.yml` and `agents/*.yml` under the source's sub-path at the given commit. */
   async fetchFiles(commit: string): Promise<ConfigFiles> {
     let url = `${this.repoPath()}/tarball/${commit}`;

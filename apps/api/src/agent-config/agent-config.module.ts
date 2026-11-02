@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { APP_ENV, type AppEnv } from '../config/env';
+import { SettingsService } from '../settings/settings.service';
 import { LOCAL_TOOL_NAMES } from '../agent/tools';
 import { loadAgentConfig } from './agent-config.loader';
 import { AgentConfigService } from './agent-config.service';
@@ -12,11 +12,11 @@ import { TypeOrmSnapshotStore } from './snapshot.store';
   providers: [
     {
       provide: AgentConfigService,
-      inject: [APP_ENV, DataSource],
-      useFactory: async (env: AppEnv, dataSource: DataSource) =>
+      inject: [SettingsService, DataSource],
+      useFactory: async (settings: SettingsService, dataSource: DataSource) =>
         new AgentConfigService(
           await loadAgentConfig({
-            env: env.agentConfig,
+            env: settings.effective.agentConfig,
             store: new TypeOrmSnapshotStore(dataSource),
             knownLocalTools: LOCAL_TOOL_NAMES,
           }),

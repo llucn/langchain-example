@@ -22,7 +22,10 @@ export class DataStack extends cdk.Stack {
   readonly secrets: Record<
     'ORIGIN_VERIFY_SECRET' | 'MODEL_API_KEY' | 'CONFIG_GITHUB_TOKEN',
     secretsmanager.Secret
-  >;
+  > &
+    // Only when SETTINGS_ENCRYPTION_KEY is set for the deploy: enables storing the GitHub token
+    // from the Settings page.
+    Partial<Record<'SETTINGS_ENCRYPTION_KEY', secretsmanager.Secret>>;
 
   constructor(scope: Construct, id: string, props: DataStackProps) {
     super(scope, id, props);
@@ -86,6 +89,9 @@ export class DataStack extends cdk.Stack {
       ORIGIN_VERIFY_SECRET: generated('ORIGIN_VERIFY_SECRET'),
       MODEL_API_KEY: provided('MODEL_API_KEY'),
       CONFIG_GITHUB_TOKEN: provided('CONFIG_GITHUB_TOKEN'),
+      ...(process.env.SETTINGS_ENCRYPTION_KEY?.trim()
+        ? { SETTINGS_ENCRYPTION_KEY: provided('SETTINGS_ENCRYPTION_KEY') }
+        : {}),
     };
 
     // --- PostgreSQL (pgvector is enabled by the init migration) -----

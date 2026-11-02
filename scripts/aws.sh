@@ -184,6 +184,9 @@ case "$COMMAND" in
     info "Writing operator-supplied secrets"
     put_secret_if_changed MODEL_API_KEY "$MODEL_API_KEY"
     put_secret_if_changed CONFIG_GITHUB_TOKEN "$CONFIG_GITHUB_TOKEN"
+    if [[ -n "${SETTINGS_ENCRYPTION_KEY:-}" ]]; then
+      put_secret_if_changed SETTINGS_ENCRYPTION_KEY "$SETTINGS_ENCRYPTION_KEY"
+    fi
 
     remove_failed_stack "$APP_STACK"
     info "Deploying $APP_STACK (migrations run in the Elastic Beanstalk predeploy hook)"

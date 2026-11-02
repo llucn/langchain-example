@@ -139,6 +139,9 @@ export class AppStack extends cdk.Stack {
       secretEnv('ORIGIN_VERIFY_SECRET', data.secrets.ORIGIN_VERIFY_SECRET.secretArn),
       secretEnv('MODEL_API_KEY', data.secrets.MODEL_API_KEY.secretArn),
       secretEnv('CONFIG_GITHUB_TOKEN', data.secrets.CONFIG_GITHUB_TOKEN.secretArn),
+      ...(data.secrets.SETTINGS_ENCRYPTION_KEY
+        ? [secretEnv('SETTINGS_ENCRYPTION_KEY', data.secrets.SETTINGS_ENCRYPTION_KEY.secretArn)]
+        : []),
     ];
 
     const ebEnv = new elasticbeanstalk.CfnEnvironment(this, 'EbEnv', {

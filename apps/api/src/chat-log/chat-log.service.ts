@@ -113,15 +113,20 @@ export class ChatLogService {
     user: LogUser,
     agent: string | undefined,
   ): ChatLogRun {
-    return new ChatLogRun(this, session, user, this.config.resolveAgent(agent));
+    // One config for the whole run, even when the config is refreshed meanwhile.
+    const config = this.config.snapshot();
+    return new ChatLogRun(this, session, user, config.resolveAgent(agent), config);
   }
 
   /**
    * Makes sure the snapshot row of the agent's config exists (the loader stores it for a
    * repository source; a local-directory source has none), once per process.
    */
-  private async ensureConfig(agentName: string): Promise<{ version: string; hash: string }> {
-    const identity = agentConfigIdentity(this.config, agentName);
+  private async ensureConfig(
+    agentName: string,
+    config: AgentConfigService = this.config,
+  ): Promise<{ version: string; hash: string }> {
+    const identity = agentConfigIdentity(config, agentName);
     const key = `${identity.hash}:${identity.agentName}`;
     if (!this.knownConfigs.has(key)) {
       await this.snapshots
@@ -131,7 +136,7 @@ export class ChatLogService {
           hash: identity.hash,
           agentName: identity.agentName,
           version: identity.version,
-          source: this.config.source,
+          source: config.source,
           definition: identity.definition as never, // jsonb: TypeORM's deep-partial type rejects `unknown`
         })
         .orIgnore()
@@ -147,9 +152,10 @@ export class ChatLogService {
     user: LogUser,
     turnId: string,
     ev: EventFields,
+    runConfig?: AgentConfigService,
   ): Promise<void> {
     await this.safe(`event ${ev.type}`, async () => {
-      const config = ev.agentName ? await this.ensureConfig(ev.agentName) : null;
+      const config = ev.agentName ? await this.ensureConfig(ev.agentName, runConfig) : null;
       const bumped = await this.sessions
         .createQueryBuilder()
         .update()
@@ -211,13 +217,14 @@ export class ChatLogRun implements AgentRunLog {
     private readonly session: { id: string; startedAt: Date; name: string | null },
     private readonly user: LogUser,
     private readonly initialAgent: string,
+    private readonly config?: AgentConfigService,
   ) {
     this.chain = this.service.recordSession(session, user);
   }
 
   private enqueue(ev: EventFields) {
     this.chain = this.chain.then(() =>
-      this.service.writeEvent(this.session.id, this.user, this.turnId, ev),
+      this.service.writeEvent(this.session.id, this.user, this.turnId, ev, this.config),
     );
   }
 

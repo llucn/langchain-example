@@ -67,6 +67,7 @@ Key variables (see `.env.example` for all):
 | `APP_VERSION`                                            | version written to chat logs (default: `apps/api` version)          |
 | `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_TOKEN`     | Agent Config repository (`url//folder`), branch/tag/commit, token   |
 | `EVOLUTION_MODEL`, `EVOLUTION_MAX_TOKENS`                | Model of the improvement agents (default `claude-sonnet-5-5`, 8192) |
+| `SETTINGS_ENCRYPTION_KEY`                                | Base64 32-byte key encrypting a GitHub token stored on Settings     |
 
 ### Cognito setup
 
@@ -79,6 +80,10 @@ The web app sends the Cognito **ID token** as `Authorization: Bearer …`; the A
 ### Agent Config
 
 The agents (prompts, model settings, tools), the MCP server URLs and the agent parameters are not in code: at startup the API reads them from a GitHub repository through the GitHub API (`CONFIG_SOURCE` = `https://github.com/<owner>/<repo>.git//<folder>`, `CONFIG_REF` = branch, tag or commit ID, `CONFIG_GITHUB_TOKEN` for a private repository). The ref is resolved to a commit ID; the validated config is cached per commit in `agent_config_snapshots`, so a restart on the same commit does not download anything, and a moved branch or tag is detected at the next start. If GitHub is unavailable the newest snapshot of the same ref is used; an invalid or missing config stops the start. Chat logs record the ref and commit ID of the config an agent ran with. `docs/config-sample/` is the initial content for the config repository (see its README); `CONFIG_SOURCE` may also be a local directory for development, e.g. `CONFIG_SOURCE=docs/config-sample/langchain-example`.
+
+### Settings (hot refresh)
+
+Admins change `CONFIG_GITHUB_API_URL`, `CONFIG_GITHUB_TOKEN`, `CONFIG_SOURCE`, `CONFIG_REF`, `EVOLUTION_MODEL` and `EVOLUTION_MAX_TOKENS` on the **Settings** page (`/settings`, API under `/admin/settings`) without restarting. A stored value overrides the environment variable of the same name; "Use environment value" removes it. `CONFIG_REF` is a dropdown of the repository's branches and tags. The token is a password field that is never returned (empty = unchanged) and is stored encrypted with `SETTINGS_ENCRYPTION_KEY`. On save the new Agent Config is loaded and validated from the source first; a failure changes nothing. Running chat turns finish on the config they started with; other API instances refresh through Redis.
 
 ### Chat logs and Log Review
 

@@ -6,7 +6,15 @@ import {
   Topbar,
   useTheme,
 } from '@techconnect/design-system';
-import { Activity, ClipboardCheck, Home, Lightbulb, MessageSquare, User } from 'lucide-react';
+import {
+  Activity,
+  ClipboardCheck,
+  Home,
+  Lightbulb,
+  MessageSquare,
+  Settings,
+  User,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
@@ -17,6 +25,7 @@ import { ImprovementsPage } from './pages/ImprovementsPage';
 import { HomePage } from './pages/HomePage';
 import { LogReviewPage } from './pages/LogReviewPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { SettingsPage } from './pages/SettingsPage';
 
 const NAV_ITEMS = [
   { id: '/', label: 'Home', icon: <Home size={16} /> },
@@ -29,6 +38,7 @@ const NAV_ITEMS = [
 const ADMIN_NAV_ITEMS = [
   { id: '/log-review', label: 'Log Review', icon: <ClipboardCheck size={16} /> },
   { id: '/improvements', label: 'Improvements', icon: <Lightbulb size={16} /> },
+  { id: '/settings', label: 'Settings', icon: <Settings size={16} /> },
 ];
 
 export function App() {
@@ -89,6 +99,7 @@ export function App() {
               <Route path="/log-review" element={<LogReviewPage />} />
               <Route path="/improvements" element={<ImprovementsPage />} />
               <Route path="/improvements/:id" element={<ImprovementDetailPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </main>
         </div>
