@@ -9,7 +9,11 @@ import { adminClient, quoteIdent } from './admin-client';
  */
 async function main() {
   const { db, redis, nodeEnv } = loadEnv();
-  if (nodeEnv === 'production') throw new Error('Refusing to reset database in production');
+  if (nodeEnv === 'production' && process.env.DB_RESET_ALLOW_REMOTE !== 'true') {
+    throw new Error(
+      'Refusing to reset database in production (set DB_RESET_ALLOW_REMOTE=true to allow)',
+    );
+  }
 
   const client = adminClient();
   await client.connect();

@@ -3,3 +3,5 @@ dist
 coverage
 .cache
 node_modules
+cdk.out
+infra/build

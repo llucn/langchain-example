@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "outDir": "cdk.out/tsc",
+    "types": ["node", "jest"]
+  },
+  "include": ["bin", "lib", "test"],
+  "exclude": ["node_modules", "cdk.out"]
+}

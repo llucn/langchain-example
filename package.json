@@ -25,6 +25,12 @@
     "seed": "pnpm --filter @app/api seed",
     "infra:up": "docker compose up -d db redis",
     "infra:down": "docker compose stop db redis",
+    "infra:bootstrap": "bash scripts/aws.sh bootstrap",
+    "infra:synth": "bash scripts/aws.sh synth",
+    "infra:diff": "bash scripts/aws.sh diff",
+    "deploy:aws": "bash scripts/aws.sh deploy",
+    "destroy:aws": "bash scripts/aws.sh destroy",
+    "db:reset:aws": "bash scripts/aws.sh reset-data",
     "clean": "pnpm -r --if-present clean && rimraf .cache"
   },
   "devDependencies": {
