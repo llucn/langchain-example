@@ -1,0 +1,128 @@
+name: AWS (dev)
+
+# Manual only. Runs the same scripts as the local CLI (scripts/aws.sh):
+#   deploy   -> pnpm deploy:aws
+#   diff     -> pnpm infra:diff
+#   db-reset -> pnpm db:reset:aws
+#   destroy  -> pnpm destroy:aws
+# One-time setup (environment, variables, secrets, IAM user): docs/aws-deployment.md#github-actions.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Action to run
+        type: choice
+        required: true
+        options:
+          - deploy
+          - diff
+          - db-reset
+          - destroy
+      confirm:
+        description: 'For db-reset and destroy: type the stage name (dev) to confirm. Both delete data.'
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+# Never run two infrastructure operations at once.
+concurrency:
+  group: aws-dev
+  cancel-in-progress: false
+
+env:
+  STAGE: dev
+
+jobs:
+  run:
+    name: ${{ inputs.action }} (dev)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Create a GitHub environment named "dev" to add required reviewers or scoped secrets.
+    environment: dev
+    env:
+      ACTION: ${{ inputs.action }}
+    steps:
+      - name: Check confirmation
+        if: ${{ inputs.action == 'db-reset' || inputs.action == 'destroy' }}
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [[ "$CONFIRM" != "$STAGE" ]]; then
+            echo "::error::'$ACTION' deletes data. Set the 'confirm' input to '$STAGE' and run again."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      # The pnpm version comes from the "packageManager" field of package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Non-secret API settings (same format as infra/.env.example), e.g. CONFIG_SOURCE, CONFIG_REF,
+      # MODEL_BASE_URL, ADMIN_GROUP. Real environment variables below take precedence.
+      - name: Write non-secret settings
+        env:
+          API_ENV: ${{ vars.API_ENV }}
+        run: |
+          umask 077
+          printf '%s\n' "$API_ENV" > "infra/.env.$STAGE"
+
+      - name: deploy
+        if: ${{ inputs.action == 'deploy' }}
+        env:
+          OIDC_ISSUER: ${{ vars.OIDC_ISSUER }}
+          OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID }}
+          OIDC_COGNITO_DOMAIN: ${{ vars.OIDC_COGNITO_DOMAIN }}
+          OIDC_SCOPE: ${{ vars.OIDC_SCOPE }}
+          MODEL_API_KEY: ${{ secrets.MODEL_API_KEY }}
+          CONFIG_GITHUB_TOKEN: ${{ secrets.CONFIG_GITHUB_TOKEN }}
+          CLOUDFRONT_PREFIX_LIST_ID: ${{ vars.CLOUDFRONT_PREFIX_LIST_ID }}
+        run: pnpm deploy:aws -- --stage "$STAGE"
+
+      # Builds the web app and API bundle first (the CLI does it when they are missing).
+      - name: diff
+        if: ${{ inputs.action == 'diff' }}
+        env:
+          OIDC_ISSUER: ${{ vars.OIDC_ISSUER }}
+          OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID }}
+          OIDC_COGNITO_DOMAIN: ${{ vars.OIDC_COGNITO_DOMAIN }}
+          OIDC_SCOPE: ${{ vars.OIDC_SCOPE }}
+          CLOUDFRONT_PREFIX_LIST_ID: ${{ vars.CLOUDFRONT_PREFIX_LIST_ID }}
+        run: pnpm infra:diff -- --stage "$STAGE"
+
+      - name: db-reset
+        if: ${{ inputs.action == 'db-reset' }}
+        run: pnpm db:reset:aws -- --stage "$STAGE" --yes
+
+      - name: destroy
+        if: ${{ inputs.action == 'destroy' }}
+        env:
+          CLOUDFRONT_PREFIX_LIST_ID: ${{ vars.CLOUDFRONT_PREFIX_LIST_ID }}
+        run: pnpm destroy:aws -- --stage "$STAGE" --yes
+
+      - name: Summary
+        if: ${{ inputs.action == 'deploy' }}
+        run: |
+          URL="$(aws cloudformation describe-stacks --stack-name "LangchainExample-$STAGE-App" \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontUrl'].OutputValue | [0]" --output text)"
+          {
+            echo "### Deployed \`$STAGE\`"
+            echo "- App: $URL"
+            echo "- Health: $URL/api/health"
+            echo "- Cognito callback URL: \`$URL/\`"
+            echo "- Cognito sign-out URL: \`$URL/\`"
+          } >> "$GITHUB_STEP_SUMMARY"

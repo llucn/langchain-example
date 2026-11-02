@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Local AWS deployment CLI (no CI). Usage, via pnpm from the repo root:
 #   pnpm infra:bootstrap            one-time CDK bootstrap for the account/region
-#   pnpm infra:synth  [-- --stage dev]
-#   pnpm infra:diff   [-- --stage dev]
+#   pnpm infra:synth  [-- --stage dev]   builds web + API bundle first when missing
+#   pnpm infra:diff   [-- --stage dev]   same; needs OIDC_ISSUER / OIDC_CLIENT_ID then
 #   pnpm deploy:aws   [-- --stage dev]
 #   pnpm destroy:aws  [-- --stage dev] [--yes]
 #   pnpm db:reset:aws [-- --stage dev] [--yes]   wipe + migrate the deployed database
@@ -138,6 +138,17 @@ stack_output() {
     --query "Stacks[0].Outputs[?OutputKey=='$2'].OutputValue | [0]" --output text
 }
 
+# Web app (Vite reads OIDC_* at build time; the process environment wins over the root .env) and
+# API bundle, i.e. the inputs of the App stack.
+build_artifacts() {
+  info "Building web app"
+  (cd "$ROOT" && pnpm --filter @app/shared build)
+  (cd "$ROOT" && OIDC_COGNITO_DOMAIN="${OIDC_COGNITO_DOMAIN:-}" OIDC_SCOPE="${OIDC_SCOPE:-openid email phone}"     pnpm --filter @app/web build)
+
+  info "Bundling API"
+  "$ROOT/infra/scripts/bundle-api.sh"
+}
+
 # Settings that are only checked by `cdk synth`/`diff`; empty is fine there.
 export OIDC_ISSUER="${OIDC_ISSUER:-}" OIDC_CLIENT_ID="${OIDC_CLIENT_ID:-}"
 
@@ -151,9 +162,11 @@ case "$COMMAND" in
 
   synth|diff)
     cdk_context_args
-    # Synthesis needs the build outputs the stacks reference.
-    [[ -f "$ROOT/infra/build/api-bundle.zip" && -d "$ROOT/apps/web/dist" ]] \
-      || die "Build outputs missing. Run 'pnpm deploy:aws' once, or build the API bundle and web app first."
+    # Synthesis needs the build outputs the stacks reference; build them when missing.
+    if [[ ! -f "$ROOT/infra/build/api-bundle.zip" || ! -d "$ROOT/apps/web/dist" ]]; then
+      require_vars OIDC_ISSUER OIDC_CLIENT_ID
+      build_artifacts
+    fi
     cdk "$COMMAND" "$DATA_STACK" "$APP_STACK" "${CTX[@]}"
     ;;
 
@@ -162,14 +175,7 @@ case "$COMMAND" in
     require_vars OIDC_ISSUER OIDC_CLIENT_ID MODEL_API_KEY CONFIG_GITHUB_TOKEN
     cdk_context_args
 
-    info "Building web app"
-    (cd "$ROOT" && pnpm --filter @app/shared build)
-    # Vite reads OIDC_* at build time; the process environment wins over the root .env.
-    (cd "$ROOT" && OIDC_COGNITO_DOMAIN="${OIDC_COGNITO_DOMAIN:-}" OIDC_SCOPE="${OIDC_SCOPE:-openid email phone}" \
-      pnpm --filter @app/web build)
-
-    info "Bundling API"
-    "$ROOT/infra/scripts/bundle-api.sh"
+    build_artifacts
 
     remove_failed_stack "$DATA_STACK"
     info "Deploying $DATA_STACK"

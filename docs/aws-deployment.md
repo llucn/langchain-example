@@ -1,6 +1,6 @@
 # AWS deployment (dev stage)
 
-Deploys the app to AWS from your machine with the AWS CLI and CDK (`infra/`, `scripts/aws.sh`). No CI.
+Deploys the app to AWS from your machine with the AWS CLI and CDK (`infra/`, `scripts/aws.sh`), or from GitHub Actions (see [GitHub Actions](#github-actions)).
 
 ```
 CloudFront ─┬─ /*      → private S3 bucket (web build)
@@ -58,6 +58,25 @@ URLs are the site root, because the web app uses `HashRouter`):
 
 Migrations run on every deploy in the Elastic Beanstalk predeploy hook under a PostgreSQL advisory
 lock; a failure fails the deployment. The seed is not run on AWS.
+
+## GitHub Actions
+
+`.github/workflows/aws.yml` runs the same scripts. It is **manual only** (Actions tab → _AWS (dev)_ → _Run workflow_), with the action `deploy`, `diff`, `db-reset` or `destroy`. `db-reset` and `destroy` need the input `confirm` set to `dev`. Runs are serialized (one at a time, never cancelled). The workflow must exist on the default branch to appear in the UI; before that use `gh workflow run aws.yml --ref <branch> -f action=diff`.
+
+One-time setup (repository admin), Settings → Environments → **New environment** `dev` (optionally add _Required reviewers_, recommended for `destroy` and `db-reset`), then add to that environment:
+
+| Kind     | Name                                   | Value                                                                                                                                                           |
+| -------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| variable | `AWS_REGION`                           | region of the stack, e.g. `us-east-2`                                                                                                                           |
+| variable | `AWS_ACCESS_KEY_ID`                    | access key id of the deploy IAM user                                                                                                                            |
+| secret   | `AWS_SECRET_ACCESS_KEY`                | its secret key                                                                                                                                                  |
+| variable | `OIDC_ISSUER`, `OIDC_CLIENT_ID`        | Cognito issuer and app client (required for deploy and diff)                                                                                                    |
+| variable | `OIDC_COGNITO_DOMAIN`, `OIDC_SCOPE`    | optional, as in `.env.example`                                                                                                                                  |
+| secret   | `MODEL_API_KEY`, `CONFIG_GITHUB_TOKEN` | written to Secrets Manager by deploy                                                                                                                            |
+| variable | `API_ENV`                              | optional non-secret settings, one `KEY=value` per line (`CONFIG_SOURCE`, `CONFIG_REF`, `MODEL_BASE_URL`, `ADMIN_GROUP`, …), same format as `infra/.env.example` |
+| variable | `CLOUDFRONT_PREFIX_LIST_ID`            | only if the IAM user cannot call `ec2:DescribeManagedPrefixLists`                                                                                               |
+
+The IAM user needs the same rights as for the local CLI (the account is already CDK-bootstrapped). Use a dedicated user and rotate its key regularly; GitHub OIDC federation (no stored keys) is a possible hardening. After `deploy` the job summary shows the URL and the Cognito callback and sign-out URLs (`<url>/`). `diff` builds the web app and API bundle first; because the bundle is rebuilt, the asset hashes can show up as changes even when the code is the same.
 
 ## Network
 
