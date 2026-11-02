@@ -38,7 +38,7 @@ The system SHALL resolve `CONFIG_REF` to a full 40-character commit ID through t
 - **THEN** startup fails with an error that names the reference and the source and says it was not found or not accessible
 
 ### Requirement: Private repository access
-The system SHALL authenticate to the GitHub API with `CONFIG_GITHUB_TOKEN` when it is set, as a bearer `Authorization` header, and never in a URL. The system SHALL NOT forward the token to the host the tarball download redirects to, and SHALL refuse a redirect to a host other than a GitHub download host. The token SHALL NOT appear in logs, error messages or snapshots.
+The system SHALL authenticate to the GitHub API with `CONFIG_GITHUB_TOKEN` when it is set, as a bearer `Authorization` header, and never in a URL. The same token SHALL be used both to read the config and, when an admin publishes an improvement proposal, to create a branch, a commit and a pull request in the config repository; reading needs *Contents* read access and publishing additionally *Contents* and *Pull requests* write access. The system SHALL NOT forward the token to the host the tarball download redirects to, and SHALL refuse a redirect to a host other than a GitHub download host. The token SHALL NOT appear in logs, error messages, snapshots or stored proposals. Writes SHALL never target the repository's default branch directly and SHALL never merge a pull request. Publishing SHALL be unavailable when `CONFIG_SOURCE` is a local directory.
 
 #### Scenario: Token supplied
 - **WHEN** `CONFIG_GITHUB_TOKEN` is set and the repository is private
@@ -55,6 +55,18 @@ The system SHALL authenticate to the GitHub API with `CONFIG_GITHUB_TOKEN` when 
 #### Scenario: Unexpected redirect target
 - **WHEN** the tarball request is redirected to an unrelated host
 - **THEN** the download is refused and startup fails or falls back as for an unavailable repository
+
+#### Scenario: Token without write permission
+- **WHEN** an admin publishes a proposal and the token lacks write access (HTTP 403 or 404 on a write request)
+- **THEN** publishing fails with an error saying the token needs Contents and Pull requests write access, the proposal stays `ready` and the error contains no token value
+
+#### Scenario: Branch only
+- **WHEN** a proposal is published
+- **THEN** commits are made on a new `improvement/` branch and the pull request is left open
+
+#### Scenario: Local config source
+- **WHEN** `CONFIG_SOURCE` is a local directory
+- **THEN** publishing is unavailable and no GitHub write request is made
 
 ### Requirement: Config layout and variables
 `config.yml` SHALL be a YAML mapping with optional blocks `env` (variable name → scalar value), `mcpServers`, `settings` and `model`. Each file `agents/<name>.yml` SHALL define one agent whose name is the file name without extension. After parsing an agent file the system SHALL resolve each placeholder `${env.NAME}` or `${env.NAME:default}` in its string values with the value of `NAME` in the `env` block of `config.yml`, falling back to `default` when `NAME` is undefined. A string value that consists of exactly one placeholder SHALL take the typed value (e.g. a number); a placeholder inside a longer string SHALL be interpolated as text; `$${` SHALL stand for a literal `${`. A placeholder for an undefined variable without default SHALL be a validation error. Duplicate YAML keys SHALL be a validation error.
@@ -181,3 +193,21 @@ The repository SHALL contain, under `docs/config-sample`, a config tree equal in
 - **WHEN** the sample is loaded
 - **THEN** each agent's model, `maxTokens`, `thinking`, `outputConfig`, `tools` and `systemPrompt`, and the global settings, equal the values of the previous hard-coded definitions
 
+### Requirement: Runtime reload
+The system SHALL be able to replace the running Agent Config with a newly loaded one without restarting the process, using the same resolution, validation and snapshot caching as at startup. The replacement SHALL be atomic: a turn that started before it SHALL finish using the config it started with, and turns started after it SHALL use the new one. A failed reload SHALL leave the running config unchanged. The values of `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_TOKEN` and `CONFIG_GITHUB_API_URL` that a reload uses SHALL be the effective values of the `runtime-settings` capability, so that a stored value replaces the environment variable of the same name and the environment variables remain the defaults.
+
+#### Scenario: Successful reload
+- **WHEN** a reload is requested for a ref that resolves to a new valid commit
+- **THEN** new turns use agents, MCP servers and settings from that commit and chat logs record its ref and commit ID
+
+#### Scenario: Failed reload
+- **WHEN** the reload fails (unreachable repository, unknown ref, invalid config)
+- **THEN** the running config is unchanged and the error names the reference and the source
+
+#### Scenario: Turn in progress
+- **WHEN** a reload completes during a running turn
+- **THEN** that turn continues and is logged with the config it started with
+
+#### Scenario: Environment defaults
+- **WHEN** no stored value exists for `CONFIG_REF`
+- **THEN** a reload uses the `CONFIG_REF` environment variable
