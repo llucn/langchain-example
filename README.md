@@ -14,6 +14,10 @@ Monorepo skeleton: **NestJS** API + **React** web + shared TypeScript package, w
 | Gateway  | Traefik (docker compose), routes by path: `/api`, `/docs` → api, `/` → web        |
 | Auth     | OIDC / AWS Cognito (Authorization Code + PKCE in web, JWT verification in API)    |
 
+## AWS deployment
+
+`pnpm deploy:aws` deploys the dev stage (Elastic Beanstalk + RDS + ElastiCache + CloudFront) from your machine; see [docs/aws-deployment.md](docs/aws-deployment.md).
+
 ## Code structure
 
 ```
