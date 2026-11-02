@@ -49,6 +49,12 @@ export class ImprovementController {
     return this.improvements.get(id);
   }
 
+  @Post(':id/publish')
+  @ApiOperation({ summary: 'Open a pull request in the config repository for a ready proposal' })
+  publish(@Param('id', ParseUUIDPipe) id: string): Promise<{ branch: string; prUrl: string }> {
+    return this.improvements.publish(id);
+  }
+
   @Post(':id/discard')
   @HttpCode(204)
   @ApiOperation({ summary: 'Discard a ready or failed proposal' })

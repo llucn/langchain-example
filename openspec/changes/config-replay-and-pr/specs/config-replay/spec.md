@@ -12,7 +12,7 @@ The system SHALL replay a reviewed turn with a given agent config without contac
 - **THEN** no new row exists in `chat_sessions`, `chat_messages`, `chat_log_sessions` or `chat_log_messages`
 
 ### Requirement: Recorded tool results
-During replay the system SHALL answer an MCP tool call with the result recorded in the session's log when the tool name and the canonical JSON of the arguments both match, consuming each recorded result at most once in recorded order. A call without a matching recorded result SHALL receive a marked placeholder result stating that no result was recorded and the call was not executed, and SHALL be flagged `unrecorded` in the replay output with its tool name and arguments.
+During replay the system SHALL answer an MCP tool call with the result recorded in the session's log (the full, unclipped text) when the tool name and the canonical JSON of the arguments both match, consuming each recorded result at most once in recorded order. A call without a matching recorded result SHALL receive a marked placeholder result stating that no result was recorded and the call was not executed, and SHALL be flagged `unrecorded` in the replay output with its tool name and arguments.
 
 #### Scenario: Matching call
 - **WHEN** the replayed agent calls a tool with the same name and arguments as in the log

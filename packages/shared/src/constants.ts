@@ -40,7 +40,18 @@ export const DIAGNOSIS_LAYERS = [
   'insufficient_evidence',
 ] as const;
 
-export const IMPROVEMENT_STATUSES = ['generating', 'ready', 'failed', 'discarded'] as const;
+export const IMPROVEMENT_STATUSES = [
+  'generating',
+  'ready',
+  'failed',
+  'discarded',
+  'published',
+] as const;
+
+export const REPLAY_VERDICTS = ['improved', 'same', 'regressed', 'inconclusive'] as const;
+
+/** `target`: a Bad review the proposal answers; `regression`: a Good review that must stay good. */
+export const REPLAY_KINDS = ['target', 'regression'] as const;
 
 /** Most Bad reviews one generation takes. */
 export const MAX_IMPROVEMENT_REVIEWS = 10;

@@ -2,7 +2,9 @@ import {
   MAX_IMPROVEMENT_REVIEWS,
   type ChatLogReview,
   type DiagnosisLayer,
+  type ImprovementReplay,
   type ImprovementStatus,
+  type ReplayVerdictKind,
 } from '@app/shared';
 
 /** Only Bad reviews of a message can be turned into an improvement proposal. */
@@ -56,4 +58,44 @@ export function diffLineKind(line: string): 'add' | 'del' | 'hunk' | 'meta' | 'c
   if (line.startsWith('+')) return 'add';
   if (line.startsWith('-')) return 'del';
   return 'ctx';
+}
+
+export const VERDICT_COLOR: Record<ReplayVerdictKind, string> = {
+  improved: 'var(--green)',
+  same: 'var(--muted)',
+  regressed: 'var(--red)',
+  inconclusive: 'var(--muted2)',
+};
+
+const VERDICT_ORDER: Record<ReplayVerdictKind, number> = {
+  regressed: 0,
+  improved: 1,
+  same: 2,
+  inconclusive: 3,
+};
+
+/** Replays with regressions first, then by verdict; a failed replay (no verdict) goes last. */
+export const sortReplays = (replays: ImprovementReplay[]): ImprovementReplay[] =>
+  [...replays].sort(
+    (a, b) =>
+      (a.verdict ? VERDICT_ORDER[a.verdict.verdict] : 4) -
+      (b.verdict ? VERDICT_ORDER[b.verdict.verdict] : 4),
+  );
+
+export const regressionCount = (replays: ImprovementReplay[]) =>
+  replays.filter((r) => r.verdict?.verdict === 'regressed').length;
+
+/** One line of the replay summary shown in the pull request dialog. */
+export function replayTally(replays: ImprovementReplay[]): string {
+  if (!replays.length) return 'No replay results.';
+  const count = (v: ReplayVerdictKind) => replays.filter((r) => r.verdict?.verdict === v).length;
+  const failed = replays.filter((r) => r.error).length;
+  const parts = [
+    `${count('improved')} improved`,
+    `${count('same')} same`,
+    `${count('regressed')} regressed`,
+    `${count('inconclusive')} inconclusive`,
+  ];
+  if (failed) parts.push(`${failed} failed`);
+  return `${replays.length} replayed: ${parts.join(', ')}.`;
 }

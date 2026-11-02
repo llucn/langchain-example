@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   Inject,
@@ -17,6 +18,8 @@ import type {
 } from '@app/shared';
 import { In, Repository } from 'typeorm';
 import { AgentConfigService } from '../agent-config/agent-config.service';
+import { GitHubWriteError, GitHubWriter } from '../agent-config/github-writer';
+import { parseSource, type GitHubSource } from '../agent-config/source';
 import { APP_ENV, type AppEnv } from '../config/env';
 import { LOCAL_TOOL_NAMES } from '../agent/tools';
 import { AgentConfigSnapshot } from '../database/entities/agent-config-snapshot.entity';
@@ -24,13 +27,19 @@ import { ChatLogMessage } from '../database/entities/chat-log-message.entity';
 import { ChatLogReview } from '../database/entities/chat-log-review.entity';
 import { ImprovementCase } from '../database/entities/improvement-case.entity';
 import { ImprovementProposal } from '../database/entities/improvement-proposal.entity';
+import { ImprovementReplay } from '../database/entities/improvement-replay.entity';
 import { CaseBuilder } from './case-builder';
+import type { ConfigFiles } from '../agent-config/agent-config.types';
 import { ConfigFilesProvider } from './config-files.provider';
 import { changedPaths, checkConfigChange } from './config-change.checker';
 import { diagnoseCase } from './diagnosis.agent';
 import { createEvolutionCaller, type StructuredCaller } from './evolution.model';
 import { ACTIONABLE_LAYERS, proposeChange, type ActionableCase } from './proposal.agent';
+import { Limiter } from './limiter';
 import { loadToolInventory, type ToolInventory } from './tool-inventory';
+import { branchName, commitMessage, pullRequestBody, pullRequestTitle } from './pull-request';
+import { agentRunner, type ReplayRunner } from './replay/replay';
+import { ReplayPhase, toReplayDto, type ReplayTarget } from './replay/replay.phase';
 import { unifiedDiff } from './unified-diff';
 
 /** Generations that run at the same time. */
@@ -41,24 +50,6 @@ export interface Requester {
   name: string | null;
   /** The admin's JWT, forwarded to the MCP servers to list their tools. */
   idToken?: string;
-}
-
-/** Runs at most `limit` tasks at a time; the rest wait in order. */
-export class Limiter {
-  private active = 0;
-  private readonly queue: (() => void)[] = [];
-  constructor(private readonly limit: number) {}
-
-  async run<T>(task: () => Promise<T>): Promise<T> {
-    if (this.active >= this.limit) await new Promise<void>((resolve) => this.queue.push(resolve));
-    this.active++;
-    try {
-      return await task();
-    } finally {
-      this.active--;
-      this.queue.shift()?.();
-    }
-  }
 }
 
 const notesFor = (reviewId: string, d: Diagnosis) =>
@@ -80,7 +71,14 @@ export class ImprovementService implements OnModuleInit {
     @InjectRepository(ChatLogMessage) private readonly messages: Repository<ChatLogMessage>,
     @InjectRepository(AgentConfigSnapshot)
     private readonly snapshots: Repository<AgentConfigSnapshot>,
+    @InjectRepository(ImprovementReplay) private readonly replays: Repository<ImprovementReplay>,
   ) {
+    this.replayRunner = agentRunner(env);
+    this.github = () => {
+      const src = this.githubSource();
+      if (!src) throw new ConflictException('Publishing is not available for this config source');
+      return new GitHubWriter(src, { token: env.agentConfig.githubToken });
+    };
     this.caller = () => createEvolutionCaller(config, env);
     this.files = new ConfigFilesProvider(env.agentConfig, config);
     this.inventory = (token) => loadToolInventory(config, token);
@@ -90,6 +88,25 @@ export class ImprovementService implements OnModuleInit {
   caller: () => StructuredCaller;
   files: Pick<ConfigFilesProvider, 'current'>;
   inventory: (token: string | undefined) => Promise<ToolInventory>;
+  replayRunner: ReplayRunner;
+  github: () => Pick<
+    GitHubWriter,
+    | 'defaultBranch'
+    | 'head'
+    | 'fileText'
+    | 'createBranch'
+    | 'deleteBranch'
+    | 'commitFiles'
+    | 'openPullRequest'
+  >;
+
+  /** The config repository when it is on GitHub and a token is set; null for a local directory. */
+  private githubSource(): GitHubSource | null {
+    const { source, githubApiUrl, githubToken } = this.env.agentConfig;
+    if (!source || !githubToken) return null;
+    const parsed = parseSource(source, githubApiUrl);
+    return parsed.kind === 'github' ? parsed : null;
+  }
 
   /** A generation the API did not finish cannot resume: mark it failed. */
   async onModuleInit(): Promise<void> {
@@ -213,6 +230,9 @@ export class ImprovementService implements OnModuleInit {
     let files: ImprovementFile[] = [];
     let diff = '';
     let rationale = '';
+    let replay:
+      | { proposed: ConfigFiles; identity: { hash: string; version: string; source: string } }
+      | undefined;
     if (actionable.length) {
       const base = await this.files.current();
       const allowedAgents = new Set([agentName]);
@@ -248,6 +268,48 @@ export class ImprovementService implements OnModuleInit {
       });
       diff = files.map((f) => unifiedDiff(f.path, f.base, f.proposed)).join('\n');
       if (!files.length) notes.push('The model proposed no change to the config files.');
+      else replay = { proposed: result.proposed, identity };
+    }
+
+    if (replay) {
+      if (!inventory.available) {
+        notes.push(
+          'Replay was skipped: it needs the MCP tool inventory, which could not be read (run it where authentication is on).',
+        );
+      } else {
+        try {
+          const byId = new Map(items.map((i) => [i.review.id, i]));
+          const targets = actionable.flatMap((a): ReplayTarget[] => {
+            const item = byId.get(a.reviewId);
+            return item ? [{ ...item, routing: a.diagnosis.layer === 'routing' }] : [];
+          });
+          const unique = new Map(
+            Object.values(inventory.byAgent)
+              .flat()
+              .map((t) => [`${t.source}/${t.name}`, t]),
+          );
+          await new ReplayPhase({
+            messages: this.messages,
+            reviews: this.reviews,
+            snapshots: this.snapshots,
+            replays: this.replays,
+            run: this.replayRunner,
+            caller,
+            knownLocalTools: LOCAL_TOOL_NAMES,
+          }).run({
+            proposalId,
+            agentName,
+            targets,
+            proposed: replay.proposed,
+            identity: replay.identity,
+            inventory: [...unique.values()],
+          });
+        } catch (err) {
+          // Replay is advisory: its failure must not lose the proposal.
+          this.logger.error(`Replay of proposal ${proposalId} failed: ${(err as Error).message}`);
+          notes.push(`Replay failed: ${(err as Error).message}`);
+        }
+      }
     }
 
     await this.proposals.update(
@@ -283,6 +345,10 @@ export class ImprovementService implements OnModuleInit {
     const p = await this.proposals.findOneBy({ id });
     if (!p) throw new NotFoundException('Proposal not found');
     const cases = await this.cases.find({ where: { proposalId: id }, order: { id: 'ASC' } });
+    const replays = await this.replays.find({
+      where: { proposalId: id },
+      order: { createdAt: 'ASC' },
+    });
     return {
       id: p.id,
       agentName: p.agentName,
@@ -299,6 +365,16 @@ export class ImprovementService implements OnModuleInit {
       notes: p.notes,
       error: p.error,
       inventoryAvailable: p.inventoryAvailable,
+      stale: p.stale,
+      branch: p.branch,
+      prUrl: p.prUrl,
+      publishAvailable:
+        this.githubSource() !== null &&
+        p.status === 'ready' &&
+        p.files.length > 0 &&
+        !p.stale &&
+        !p.branch,
+      replays: replays.map(toReplayDto),
       cases: cases.map((c): ImprovementCaseDto => ({
         id: c.id,
         reviewId: c.reviewId,
@@ -320,5 +396,86 @@ export class ImprovementService implements OnModuleInit {
     const p = await this.proposals.findOneBy({ id });
     if (!p) throw new NotFoundException('Proposal not found');
     throw new ConflictException(`A ${p.status} proposal cannot be discarded`);
+  }
+
+  /**
+   * Opens a pull request for a ready proposal: new branch, one commit, open PR; never the default
+   * branch, never a merge. The branch name is claimed first (one statement), so a second request
+   * for the same proposal is refused while the first one works.
+   */
+  async publish(id: string): Promise<{ branch: string; prUrl: string }> {
+    const p = await this.proposals.findOneBy({ id });
+    if (!p) throw new NotFoundException('Proposal not found');
+    if (!this.githubSource()) {
+      throw new ConflictException(
+        'Publishing is not available: it needs a GitHub config source and CONFIG_GITHUB_TOKEN',
+      );
+    }
+    if (p.status !== 'ready' || !p.files.length) {
+      throw new ConflictException(`A ${p.status} proposal without changes cannot be published`);
+    }
+    if (p.stale) {
+      throw new ConflictException(
+        'The config changed since this proposal was made; generate it again',
+      );
+    }
+
+    const writer = this.github();
+    const branch = branchName(p.id);
+    const claim = await this.proposals
+      .createQueryBuilder()
+      .update()
+      .set({ branch })
+      .where('id = :id AND status = :status AND branch IS NULL', { id, status: 'ready' })
+      .execute();
+    if (!claim.affected) {
+      throw new ConflictException('This proposal is already published or being published');
+    }
+
+    let created = false;
+    try {
+      const base = await writer.defaultBranch();
+      const head = await writer.head(base);
+      for (const f of p.files) {
+        if ((await writer.fileText(f.path, head.commit)) !== f.base) {
+          await this.proposals.update({ id }, { stale: true });
+          throw new ConflictException(
+            `${f.path} changed on ${base} since this proposal was made; generate it again`,
+          );
+        }
+      }
+      await writer.createBranch(branch, head.commit);
+      created = true;
+      await writer.commitFiles(
+        branch,
+        head,
+        p.files.map((f) => ({ path: f.path, text: f.proposed })),
+        commitMessage(p.agentName, p.id),
+      );
+      const cases = await this.cases.find({ where: { proposalId: id }, order: { id: 'ASC' } });
+      const replays = (await this.replays.find({ where: { proposalId: id } })).map(toReplayDto);
+      const prUrl = await writer.openPullRequest({
+        title: pullRequestTitle(p.agentName),
+        head: branch,
+        base,
+        body: pullRequestBody({
+          proposalId: p.id,
+          agentName: p.agentName,
+          rationale: p.rationale,
+          baseCommit: p.baseCommit,
+          reviewIds: cases.map((c) => c.reviewId),
+          diagnoses: cases.map((c) => ({ reviewId: c.reviewId, diagnosis: c.diagnosis })),
+          replays,
+        }),
+      });
+      await this.proposals.update({ id }, { status: 'published', branch, prUrl });
+      return { branch, prUrl };
+    } catch (err) {
+      // Release the claim so the admin can retry; remove the branch this call created.
+      if (created) await writer.deleteBranch(branch).catch(() => undefined);
+      await this.proposals.update({ id, status: 'ready' }, { branch: null });
+      if (err instanceof GitHubWriteError) throw new BadGatewayException(err.message);
+      throw err;
+    }
   }
 }

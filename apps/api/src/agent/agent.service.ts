@@ -16,7 +16,7 @@ import { AgentConfigService } from '../agent-config/agent-config.service';
 import type { AgentName } from './agent.config';
 import type { AgentRunContext } from './agent.context';
 import { TimingHandler, type AgentRunLog } from './agent.log';
-import { connectMcp } from './mcp/mcp.client';
+import { connectMcp, type McpConnection } from './mcp/mcp.client';
 import { createMultiAgentMiddleware } from './multi-agent.middleware';
 import { buildTools } from './tools';
 
@@ -25,6 +25,20 @@ export const modelConnection = (config: AgentConfigService, env: AppEnv) => ({
   baseUrl: config.model?.baseUrl ?? env.model.baseUrl,
   apiKey: config.model?.apiKey ?? env.model.apiKey,
 });
+
+/**
+ * The MCP tools of a run: the connection the caller injected (not closed by the run), or one to
+ * the config's servers made with the visitor's token (closed by the run).
+ */
+export async function acquireMcp(
+  ctx: Pick<AgentRunContext, 'mcp' | 'idToken'>,
+  servers: Record<string, string>,
+  connect: typeof connectMcp = connectMcp,
+): Promise<{ mcp: McpConnection; release: () => Promise<void> }> {
+  if (ctx.mcp) return { mcp: ctx.mcp, release: async () => undefined };
+  const mcp = await connect(servers, ctx.idToken);
+  return { mcp, release: () => mcp.close() };
+}
 
 export interface HistoryMessage {
   role: 'user' | 'assistant';
@@ -165,7 +179,7 @@ export class AgentService {
       throw new Error('MODEL_BASE_URL is not set (nor model.baseUrl in the Agent Config)');
     if (!apiKey) throw new Error('MODEL_API_KEY is not set (nor model.apiKey in the Agent Config)');
 
-    const mcp = await connectMcp(cfg.mcpServers, ctx.idToken);
+    const { mcp, release } = await acquireMcp(ctx, cfg.mcpServers);
     try {
       const models = new Map<AgentName, ChatAnthropic>();
       const modelFor = (name: AgentName) => {
@@ -259,7 +273,7 @@ export class AgentService {
       }
       return { answer, thinking, agent: current };
     } finally {
-      await mcp.close();
+      await release();
     }
   }
 }

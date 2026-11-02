@@ -1,15 +1,24 @@
-import type { ImprovementProposal, ImprovementStatus } from '@app/shared';
-import { Button, EmptyState, Skeleton } from '@techconnect/design-system';
+import type {
+  ImprovementProposal,
+  ImprovementReplay,
+  ImprovementStatus,
+  ReplayOutput,
+} from '@app/shared';
+import { Button, EmptyState, Modal, Skeleton } from '@techconnect/design-system';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { discardImprovement, getImprovement } from '../lib/improvements';
+import { discardImprovement, getImprovement, publishImprovement } from '../lib/improvements';
 import {
   LAYER_LABEL,
+  VERDICT_COLOR,
   canDiscard,
   diffLineKind,
   isGenerating,
+  regressionCount,
+  replayTally,
   shortCommit,
+  sortReplays,
 } from '../lib/improvementView';
 
 export const STATUS_COLOR: Record<ImprovementStatus, string> = {
@@ -17,6 +26,7 @@ export const STATUS_COLOR: Record<ImprovementStatus, string> = {
   ready: 'var(--green)',
   failed: 'var(--red)',
   discarded: 'var(--muted)',
+  published: 'var(--accent)',
 };
 
 const LINE_COLOR = {
@@ -75,12 +85,103 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+function DiffView({ diff }: { diff: string }) {
+  return (
+    <pre style={pre}>
+      {diff.split('\n').map((line, i) => (
+        <div key={i} style={{ color: LINE_COLOR[diffLineKind(line)] }}>
+          {line || ' '}
+        </div>
+      ))}
+    </pre>
+  );
+}
+
+function RunColumn({ title, out }: { title: string; out: ReplayOutput | null }) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{title}</div>
+      {out ? (
+        <>
+          <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+            {out.text || <span style={{ color: 'var(--muted)' }}>(no answer)</span>}
+          </div>
+          {out.toolCalls.map((c, i) => (
+            <details key={i} style={{ fontSize: 12, marginTop: 4 }}>
+              <summary style={{ cursor: 'pointer' }}>
+                <code>{c.name}</code>
+                {c.unrecorded && (
+                  <span style={{ color: 'var(--accent)' }}> · unrecorded, not executed</span>
+                )}
+              </summary>
+              <pre style={pre}>{JSON.stringify(c.args, null, 2)}</pre>
+            </details>
+          ))}
+        </>
+      ) : (
+        <span style={{ color: 'var(--muted)' }}>-</span>
+      )}
+    </div>
+  );
+}
+
+function ReplayCard({ r }: { r: ImprovementReplay }) {
+  const color = r.verdict ? VERDICT_COLOR[r.verdict.verdict] : 'var(--red)';
+  return (
+    <div
+      style={{
+        ...box,
+        borderColor: r.verdict?.verdict === 'regressed' ? 'var(--red)' : 'var(--border)',
+      }}
+    >
+      <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <strong style={{ color }}>{r.verdict ? r.verdict.verdict : 'failed'}</strong>
+        <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+          {r.kind === 'target' ? 'Bad review' : 'Good review (regression check)'} ·{' '}
+          {r.reviewId.slice(0, 8)}
+        </span>
+      </div>
+      {r.verdict && <div style={{ fontSize: 13, margin: '4px 0 8px' }}>{r.verdict.reason}</div>}
+      {r.error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{r.error}</div>}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 8 }}>
+        <RunColumn title="Old config" out={r.old} />
+        <RunColumn title="Proposed config" out={r.new} />
+      </div>
+    </div>
+  );
+}
+
+function ReplaySection({ replays }: { replays: ImprovementReplay[] }) {
+  const regressions = regressionCount(replays);
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={heading}>Replay</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+        Each side was run once with the recorded MCP results; no tool was executed.{' '}
+        {replayTally(replays)}
+      </div>
+      {regressions > 0 && (
+        <div style={{ ...box, borderColor: 'var(--red)', color: 'var(--red)', fontSize: 13 }}>
+          {regressions} regression{regressions === 1 ? '' : 's'} found: the proposed config did
+          worse on a review that was Good.
+        </div>
+      )}
+      {sortReplays(replays).map((r) => (
+        <ReplayCard key={r.id} r={r} />
+      ))}
+    </div>
+  );
+}
+
 function Detail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [p, setP] = useState<ImprovementProposal | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -120,6 +221,26 @@ function Detail() {
     }
   }
 
+  async function publish() {
+    if (!p) return;
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      await publishImprovement(p.id);
+      setConfirming(false);
+    } catch (e) {
+      setPublishError((e as Error).message);
+    } finally {
+      setPublishing(false);
+    }
+    // Reload either way: a refusal may have marked the proposal stale.
+    try {
+      setP(await getImprovement(p.id));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   return (
     <div style={{ display: 'grid', gap: 16, maxWidth: 960 }}>
       <div style={{ ...box, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -134,18 +255,36 @@ function Detail() {
         <span style={{ color: 'var(--muted)', fontSize: 12 }}>
           base {shortCommit(p.baseCommit)} · {p.baseSource}
         </span>
-        {canDiscard(p.status) && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={discard}
-            style={{ marginLeft: 'auto' }}
-          >
-            Discard
-          </Button>
-        )}
+        <span style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+          {p.prUrl && (
+            <a href={p.prUrl} target="_blank" rel="noreferrer">
+              Pull request ({p.branch})
+            </a>
+          )}
+          {p.publishAvailable && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setPublishError(null);
+                setConfirming(true);
+              }}
+            >
+              Create pull request
+            </Button>
+          )}
+          {canDiscard(p.status) && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={discard}>
+              Discard
+            </Button>
+          )}
+        </span>
       </div>
+
+      {p.stale && (
+        <div style={{ ...box, color: 'var(--red)', fontSize: 13 }}>
+          The config changed on the default branch since this proposal was made. Generate it again.
+        </div>
+      )}
 
       {p.error && (
         <div style={{ ...box, color: 'var(--red)' }}>
@@ -229,13 +368,7 @@ function Detail() {
             <div style={{ ...heading, marginBottom: 0 }}>Diff</div>
             <CopyButton text={p.diff} label="Copy diff" />
           </div>
-          <pre style={pre}>
-            {p.diff.split('\n').map((line, i) => (
-              <div key={i} style={{ color: LINE_COLOR[diffLineKind(line)] }}>
-                {line || ' '}
-              </div>
-            ))}
-          </pre>
+          <DiffView diff={p.diff} />
         </div>
       )}
 
@@ -251,6 +384,50 @@ function Detail() {
           <pre style={pre}>{f.proposed}</pre>
         </details>
       ))}
+
+      {p.replays.length > 0 && <ReplaySection replays={p.replays} />}
+
+      <Modal
+        open={confirming}
+        onClose={() => !publishing && setConfirming(false)}
+        title="Create pull request"
+        width="760px"
+        footer={
+          <>
+            <Button variant="outline" disabled={publishing} onClick={() => setConfirming(false)}>
+              Cancel
+            </Button>
+            <Button disabled={publishing} onClick={publish}>
+              {publishing ? 'Creating…' : 'Create pull request'}
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'grid', gap: 12, fontSize: 13 }}>
+          <div>
+            A branch and an open pull request are created in the config repository. Nothing is
+            merged.
+          </div>
+          <div>
+            <div style={heading}>Rationale</div>
+            <div style={{ whiteSpace: 'pre-wrap' }}>{p.rationale}</div>
+          </div>
+          <div>
+            <div style={heading}>Replay</div>
+            <div style={{ color: regressionCount(p.replays) ? 'var(--red)' : undefined }}>
+              {replayTally(p.replays)}
+            </div>
+          </div>
+          <div style={{ maxHeight: 260, overflow: 'auto' }}>
+            <DiffView diff={p.diff} />
+          </div>
+          {publishError && <div style={{ color: 'var(--red)' }}>{publishError}</div>}
+        </div>
+      </Modal>
+
+      {publishError && !confirming && (
+        <div style={{ ...box, color: 'var(--red)', fontSize: 13 }}>{publishError}</div>
+      )}
 
       {p.status === 'ready' && !p.diff && p.notes.length === 0 && (
         <div style={{ ...box, color: 'var(--muted)' }}>No change proposed.</div>
