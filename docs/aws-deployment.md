@@ -27,16 +27,17 @@ From the root `.env` only deployment keys are read (`AWS_*`, `OIDC_*`, `MODEL_*`
 `ADMIN_GROUP`, `EVOLUTION_*`, `APP_VERSION`); local `DB_*`, `REDIS_*`, `NODE_ENV` and `AUTH_ENABLED`
 are never sent to AWS. AWS access keys are used by the CLI only, never by the deployed app.
 
-| Setting                                                                                                                                           | Required | Use                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------- |
-| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                                                                                        | yes      | CLI/CDK credentials                                     |
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID`                                                                                                                   | yes      | API token verification and web sign-in (build time)     |
-| `MODEL_API_KEY`                                                                                                                                   | yes      | secret `MODEL_API_KEY`                                  |
-| `CONFIG_GITHUB_TOKEN`                                                                                                                             | yes      | secret; read access to the agent config repository      |
-| `OIDC_COGNITO_DOMAIN`, `OIDC_SCOPE`                                                                                                               | no       | web logout / scopes (build time) and API environment    |
-| `ADMIN_GROUP`, `MODEL_BASE_URL`, `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_API_URL`, `EVOLUTION_MODEL`, `EVOLUTION_MAX_TOKENS`, `APP_VERSION` | no       | Elastic Beanstalk properties when set                   |
-| `CLOUDFRONT_PREFIX_LIST_ID`                                                                                                                       | no       | only if `ec2:DescribeManagedPrefixLists` is not allowed |
-| `EB_SOLUTION_STACK`                                                                                                                               | no       | deliberate platform override (replaces the environment) |
+| Setting                                                                                                                                           | Required | Use                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                                                                                        | yes      | CLI/CDK credentials                                                                                   |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`                                                                                                                   | yes      | API token verification and web sign-in (build time)                                                   |
+| `MODEL_API_KEY`                                                                                                                                   | yes      | secret `MODEL_API_KEY`                                                                                |
+| `CONFIG_GITHUB_TOKEN`                                                                                                                             | yes      | secret; read access to the agent config repository                                                    |
+| `SETTINGS_ENCRYPTION_KEY`                                                                                                                         | no       | secret; base64 32-byte key so admins can store the GitHub token on the Settings page (keep it stable) |
+| `OIDC_COGNITO_DOMAIN`, `OIDC_SCOPE`                                                                                                               | no       | web logout / scopes (build time) and API environment                                                  |
+| `ADMIN_GROUP`, `MODEL_BASE_URL`, `CONFIG_SOURCE`, `CONFIG_REF`, `CONFIG_GITHUB_API_URL`, `EVOLUTION_MODEL`, `EVOLUTION_MAX_TOKENS`, `APP_VERSION` | no       | Elastic Beanstalk properties when set                                                                 |
+| `CLOUDFRONT_PREFIX_LIST_ID`                                                                                                                       | no       | only if `ec2:DescribeManagedPrefixLists` is not allowed                                               |
+| `EB_SOLUTION_STACK`                                                                                                                               | no       | deliberate platform override (replaces the environment)                                               |
 
 ## Commands (repo root)
 
@@ -65,16 +66,16 @@ lock; a failure fails the deployment. The seed is not run on AWS.
 
 One-time setup (repository admin), Settings → Environments → **New environment** `dev` (optionally add _Required reviewers_, recommended for `destroy` and `db-reset`), then add to that environment:
 
-| Kind     | Name                                   | Value                                                                                                                                                           |
-| -------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| variable | `AWS_REGION`                           | region of the stack, e.g. `us-east-2`                                                                                                                           |
-| variable | `AWS_ACCESS_KEY_ID`                    | access key id of the deploy IAM user                                                                                                                            |
-| secret   | `AWS_SECRET_ACCESS_KEY`                | its secret key                                                                                                                                                  |
-| variable | `OIDC_ISSUER`, `OIDC_CLIENT_ID`        | Cognito issuer and app client (required for deploy and diff)                                                                                                    |
-| variable | `OIDC_COGNITO_DOMAIN`, `OIDC_SCOPE`    | optional, as in `.env.example`                                                                                                                                  |
-| secret   | `MODEL_API_KEY`, `CONFIG_GITHUB_TOKEN` | written to Secrets Manager by deploy                                                                                                                            |
-| variable | `API_ENV`                              | optional non-secret settings, one `KEY=value` per line (`CONFIG_SOURCE`, `CONFIG_REF`, `MODEL_BASE_URL`, `ADMIN_GROUP`, …), same format as `infra/.env.example` |
-| variable | `CLOUDFRONT_PREFIX_LIST_ID`            | only if the IAM user cannot call `ec2:DescribeManagedPrefixLists`                                                                                               |
+| Kind     | Name                                                                       | Value                                                                                                                                                           |
+| -------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| variable | `AWS_REGION`                                                               | region of the stack, e.g. `us-east-2`                                                                                                                           |
+| variable | `AWS_ACCESS_KEY_ID`                                                        | access key id of the deploy IAM user                                                                                                                            |
+| secret   | `AWS_SECRET_ACCESS_KEY`                                                    | its secret key                                                                                                                                                  |
+| variable | `OIDC_ISSUER`, `OIDC_CLIENT_ID`                                            | Cognito issuer and app client (required for deploy and diff)                                                                                                    |
+| variable | `OIDC_COGNITO_DOMAIN`, `OIDC_SCOPE`                                        | optional, as in `.env.example`                                                                                                                                  |
+| secret   | `MODEL_API_KEY`, `CONFIG_GITHUB_TOKEN`, optional `SETTINGS_ENCRYPTION_KEY` | written to Secrets Manager by deploy                                                                                                                            |
+| variable | `API_ENV`                                                                  | optional non-secret settings, one `KEY=value` per line (`CONFIG_SOURCE`, `CONFIG_REF`, `MODEL_BASE_URL`, `ADMIN_GROUP`, …), same format as `infra/.env.example` |
+| variable | `CLOUDFRONT_PREFIX_LIST_ID`                                                | only if the IAM user cannot call `ec2:DescribeManagedPrefixLists`                                                                                               |
 
 The IAM user needs the same rights as for the local CLI (the account is already CDK-bootstrapped). Use a dedicated user and rotate its key regularly; GitHub OIDC federation (no stored keys) is a possible hardening. After `deploy` the job summary shows the URL and the Cognito callback and sign-out URLs (`<url>/`). `diff` builds the web app and API bundle first; because the bundle is rebuilt, the asset hashes can show up as changes even when the code is the same.
 

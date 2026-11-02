@@ -8,9 +8,31 @@ import type {
 /** Name of the agent every session starts with and the fallback for unknown stored names. */
 export const INITIAL_AGENT = 'selector';
 
-/** Read access to the Agent Config loaded at startup (immutable for the life of the process). */
+/**
+ * Read access to the Agent Config in use. A loaded config is immutable; `replace` swaps the whole
+ * config at once (hot refresh). Code that must see one config from start to end of a unit of work
+ * (a chat turn) takes a `snapshot()` first.
+ */
 export class AgentConfigService {
-  constructor(readonly config: LoadedAgentConfig) {}
+  private current: LoadedAgentConfig;
+
+  constructor(config: LoadedAgentConfig) {
+    this.current = config;
+  }
+
+  get config(): LoadedAgentConfig {
+    return this.current;
+  }
+
+  /** Makes `config` the one in use; snapshots taken earlier keep the previous one. */
+  replace(config: LoadedAgentConfig): void {
+    this.current = config;
+  }
+
+  /** A fixed view of the config in use now, unaffected by later `replace` calls. */
+  snapshot(): AgentConfigService {
+    return new AgentConfigService(this.current);
+  }
 
   get hash() {
     return this.config.hash;

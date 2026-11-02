@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DataSourceOptions } from 'typeorm';
 import { AppEnv } from '../config/env';
+import { AppSetting } from './entities/app-setting.entity';
 import { AgentConfigSnapshot } from './entities/agent-config-snapshot.entity';
 import { ChatLogMessage } from './entities/chat-log-message.entity';
 import { ChatLogReview } from './entities/chat-log-review.entity';
@@ -41,6 +42,7 @@ export function buildDataSourceOptions(env: AppEnv): DataSourceOptions {
       ImprovementProposal,
       ImprovementCase,
       ImprovementReplay,
+      AppSetting,
     ],
     migrations: [join(__dirname, 'migrations', `*.${ext}`)],
     migrationsRun: db.migrationsRun,

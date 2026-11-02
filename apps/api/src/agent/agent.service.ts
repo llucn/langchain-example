@@ -173,7 +173,8 @@ export class AgentService {
     ctx: AgentRunContext,
     onThinking: (delta: string) => void | Promise<void>,
   ): Promise<{ answer: string; thinking: string; agent: AgentName }> {
-    const cfg = this.agentConfig;
+    // One config for the whole run, even when the config is refreshed meanwhile.
+    const cfg = this.agentConfig.snapshot();
     const { baseUrl, apiKey } = modelConnection(cfg, this.env);
     if (!baseUrl)
       throw new Error('MODEL_BASE_URL is not set (nor model.baseUrl in the Agent Config)');

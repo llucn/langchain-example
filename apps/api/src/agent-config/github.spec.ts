@@ -195,3 +195,38 @@ describe('GitHubClient.fetchFiles', () => {
     expect(await kindOf(client(fetchImpl).fetchFiles(SHA))).toBe('not_found');
   });
 });
+
+describe('GitHubClient.listRefs', () => {
+  const json = (v: unknown) => new Response(JSON.stringify(v));
+
+  it('lists branches, tags and the default branch', async () => {
+    const { calls, fetchImpl } = stub((url) => {
+      if (url.includes('/branches')) return json([{ name: 'main' }, { name: 'dev' }]);
+      if (url.includes('/tags')) return json([{ name: 'v1.0' }]);
+      return json({ default_branch: 'main' });
+    });
+    expect(await client(fetchImpl).listRefs()).toEqual({
+      branches: ['main', 'dev'],
+      tags: ['v1.0'],
+      defaultBranch: 'main',
+    });
+    expect(calls.every((c) => c.headers.Authorization === `Bearer ${TOKEN}`)).toBe(true);
+  });
+
+  it('pages up to 300 entries', async () => {
+    const page = Array.from({ length: 100 }, (_, i) => ({ name: `b${i}` }));
+    const { fetchImpl } = stub((url) =>
+      url.includes('/branches')
+        ? json(page)
+        : url.includes('/tags')
+          ? json([])
+          : json({ default_branch: 'b0' }),
+    );
+    expect((await client(fetchImpl).listRefs()).branches).toHaveLength(300);
+  });
+
+  it('reports a denied token without leaking it', async () => {
+    const { fetchImpl } = stub(() => new Response('', { status: 401 }));
+    expect(await kindOf(client(fetchImpl).listRefs())).toBe('denied');
+  });
+});

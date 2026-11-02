@@ -32,6 +32,8 @@ export interface AppEnv {
   /** Version recorded in chat logs. */
   app: { version: string };
   model: { baseUrl?: string; apiKey?: string };
+  /** Base64 32-byte key that encrypts secrets stored through the Settings page. */
+  settings: { encryptionKey?: string };
   /** Model of the improvement agents (diagnosis and proposal); the connection is the agents'. */
   evolution: { model: string; maxTokens: number };
   /** Where the Agent Config comes from (see the `agent-config` capability). */
@@ -89,6 +91,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
       baseUrl: env.MODEL_BASE_URL || undefined,
       apiKey: env.MODEL_API_KEY || undefined,
     },
+    settings: { encryptionKey: env.SETTINGS_ENCRYPTION_KEY?.trim() || undefined },
     evolution: {
       model: env.EVOLUTION_MODEL?.trim() || 'claude-sonnet-5-5',
       maxTokens: Number(env.EVOLUTION_MAX_TOKENS ?? 8192),
