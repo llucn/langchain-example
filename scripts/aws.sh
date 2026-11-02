@@ -146,7 +146,7 @@ build_artifacts() {
   (cd "$ROOT" && OIDC_COGNITO_DOMAIN="${OIDC_COGNITO_DOMAIN:-}" OIDC_SCOPE="${OIDC_SCOPE:-openid email phone}"     pnpm --filter @app/web build)
 
   info "Bundling API"
-  "$ROOT/infra/scripts/bundle-api.sh"
+  bash "$ROOT/infra/scripts/bundle-api.sh"
 }
 
 # Settings that are only checked by `cdk synth`/`diff`; empty is fine there.
