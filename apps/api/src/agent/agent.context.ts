@@ -3,6 +3,8 @@ import type { Repository } from 'typeorm';
 import type { ChatSession } from '../database/entities/chat-session.entity';
 import type { User } from '../database/entities/user.entity';
 import type { AgentConfigService } from '../agent-config/agent-config.service';
+import type { MemoryService } from '../memory/memory.service';
+import type { PromptMemory } from './memory-prompt';
 import type { AgentRunLog } from './agent.log';
 import type { McpConnection } from './mcp/mcp.client';
 
@@ -15,6 +17,12 @@ import type { McpConnection } from './mcp/mcp.client';
  */
 export interface AgentRunContext {
   sessionId: string;
+  /** The visitor's OIDC subject (owner of their memories); absent when auth is disabled. */
+  ownerSub?: string | null;
+  /**
+   * Memories to put in the prompt instead of reading the owner's (replay passes the recorded ones).
+   */
+  memories?: PromptMemory[];
   /** The visitor's JWT, forwarded to the MCP servers; absent when auth is disabled. */
   idToken?: string;
   /** The session's active agent (see the Agent Config); unknown names start at the selector. */
@@ -34,6 +42,7 @@ export interface AgentToolDeps {
   users: Repository<User>;
   sessions: Repository<ChatSession>;
   config: AgentConfigService;
+  memoryStore: MemoryService;
 }
 
 export type AgentToolContext = AgentRunContext & AgentToolDeps;

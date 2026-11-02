@@ -7,6 +7,8 @@ import { AgentService, type HistoryMessage } from '../../agent/agent.service';
 import type { AppEnv } from '../../config/env';
 import type { ChatSession } from '../../database/entities/chat-session.entity';
 import type { User } from '../../database/entities/user.entity';
+import type { MemoryService } from '../../memory/memory.service';
+import { memoriesFromTexts } from '../../agent/memory-prompt';
 import type { ToolInfo } from '../tool-inventory';
 import { canonicalJson, createRecordedMcp, type RecordedResult } from './recorded-mcp';
 
@@ -19,6 +21,8 @@ export interface ReplayInput {
   recorded: RecordedResult[];
   /** The MCP tools to offer, from the proposal's tool inventory. */
   inventory: ToolInfo[];
+  /** Texts of the memories the original run had in its prompt (from the chat log). */
+  memories?: string[];
 }
 
 /** Runs the agent graph; replaceable in tests. */
@@ -28,10 +32,21 @@ export type ReplayRunner = (
   ctx: AgentRunContext,
 ) => Promise<{ answer: string; agent: string }>;
 
+/** Stands in for the memory store: reads nothing, and `saveMemory` / `forgetMemory` only pretend. */
+export const noMemory = {
+  recent: async () => [],
+  save: async (_owner: unknown, content: string) => ({
+    memory: { id: 'replay000', content },
+    created: true,
+  }),
+  findByRef: async (_owner: unknown, id: string) => ({ id, content: '' }),
+  remove: async () => undefined,
+} as unknown as MemoryService;
+
 /**
  * Replay uses a normal `AgentService` over the given config, with two stand-ins: the repository
- * `renameSession` writes to only records, and the MCP connection is the recorded one. Nothing of
- * a replay is stored.
+ * `renameSession` writes to only records, the memory service is one that stores nothing, and the
+ * MCP connection is the recorded one. Nothing of a replay is stored.
  */
 export const agentRunner =
   (env: AppEnv): ReplayRunner =>
@@ -39,7 +54,7 @@ export const agentRunner =
     const sessions = {
       update: async () => ({ affected: 0 }),
     } as unknown as Repository<ChatSession>;
-    const service = new AgentService(env, {} as Repository<User>, sessions, config);
+    const service = new AgentService(env, {} as Repository<User>, sessions, config, noMemory);
     return service.run(history, ctx, () => undefined);
   };
 
@@ -55,6 +70,7 @@ export async function replayTurn(run: ReplayRunner, input: ReplayInput): Promise
     sessionId: 'replay',
     agent: input.entryAgent,
     mcp: recorded.connection,
+    memories: memoriesFromTexts(input.memories ?? []),
     log,
   });
 
@@ -70,6 +86,19 @@ export async function replayTurn(run: ReplayRunner, input: ReplayInput): Promise
     return { name: c.name, args: c.args, unrecorded: at >= 0 };
   });
   return { text: result.answer, agent: result.agent, toolCalls };
+}
+
+/** The memory texts the turn's run had in its prompt, as the first model event of the turn logged them. */
+export function memoriesFor(
+  events: { seq: number; turnId: string; metadata?: Record<string, unknown> | null }[],
+  turnId: string,
+): string[] {
+  const turn = events.filter((e) => e.turnId === turnId).sort((a, b) => a.seq - b.seq);
+  for (const e of turn) {
+    const memories = e.metadata?.memories;
+    if (Array.isArray(memories)) return memories.filter((m): m is string => typeof m === 'string');
+  }
+  return [];
 }
 
 interface HistoryEvent {

@@ -11,6 +11,7 @@ import {
   ClipboardCheck,
   Home,
   Lightbulb,
+  Brain,
   MessageSquare,
   Settings,
   User,
@@ -24,12 +25,14 @@ import { ImprovementDetailPage } from './pages/ImprovementDetailPage';
 import { ImprovementsPage } from './pages/ImprovementsPage';
 import { HomePage } from './pages/HomePage';
 import { LogReviewPage } from './pages/LogReviewPage';
+import { MemoryPage } from './pages/MemoryPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SettingsPage } from './pages/SettingsPage';
 
 const NAV_ITEMS = [
   { id: '/', label: 'Home', icon: <Home size={16} /> },
   { id: '/chat', label: 'Chat', icon: <MessageSquare size={16} /> },
+  { id: '/memory', label: 'Memory', icon: <Brain size={16} /> },
   { id: '/health', label: 'Health', icon: <Activity size={16} /> },
   { id: '/profile', label: 'Profile', icon: <User size={16} /> },
 ];
@@ -94,6 +97,7 @@ export function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/chat/:sessionId?" element={<ChatPage />} />
+              <Route path="/memory" element={<MemoryPage />} />
               <Route path="/health" element={<HealthPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/log-review" element={<LogReviewPage />} />

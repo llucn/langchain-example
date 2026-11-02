@@ -23,6 +23,12 @@ const settingsSchema = z.strictObject({
       minConfidence: z.number().min(0).max(1).default(0.5),
     })
     .prefault({}),
+  memory: z
+    .strictObject({
+      enabled: z.boolean().default(true),
+      maxMemories: z.number().int().positive().default(30),
+    })
+    .prefault({}),
 });
 
 export const configSchema = z.strictObject({

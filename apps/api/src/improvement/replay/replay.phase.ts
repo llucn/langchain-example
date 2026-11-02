@@ -19,7 +19,7 @@ import { Limiter } from '../limiter';
 import type { ToolInfo } from '../tool-inventory';
 import { judgeReplay } from './judge';
 import { recordedResults } from './recorded-mcp';
-import { historyFor, replayTurn, type ReplayRunner } from './replay';
+import { historyFor, memoriesFor, replayTurn, type ReplayRunner } from './replay';
 
 /** Replays that run at the same time within one proposal. */
 const CONCURRENCY = 3;
@@ -163,7 +163,13 @@ export class ReplayPhase {
     const history = historyFor(events, message.turnId);
     if (!history.length) throw new Error('The reviewed turn has no user message');
     const entryAgent = routing ? 'selector' : (message.agentName ?? 'selector');
-    const common = { entryAgent, history, recorded: recordedResults(events), inventory };
+    const common = {
+      entryAgent,
+      history,
+      recorded: recordedResults(events),
+      inventory,
+      memories: memoriesFor(events, message.turnId),
+    };
 
     const oldOut = await replayTurn(this.deps.run, { ...common, config: old });
     const newOut = await replayTurn(this.deps.run, { ...common, config: proposedConfig });

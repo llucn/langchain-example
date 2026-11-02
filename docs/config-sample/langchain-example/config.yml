@@ -22,6 +22,12 @@ settings:
     maxTurns: 5
     # Below this confidence `selectAgent` is rejected until the last selector turn.
     minConfidence: 0.5
+  # Long-term memory per user (see saveMemory / forgetMemory in the agents).
+  memory:
+    # false: nothing is added to the prompts and the memory tools report that memory is disabled.
+    enabled: true
+    # The newest memories of the user put into every system prompt.
+    maxMemories: 30
 
 # Optional: overrides MODEL_BASE_URL / MODEL_API_KEY of the API environment.
 # model:

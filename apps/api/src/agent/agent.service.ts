@@ -17,6 +17,8 @@ import type { AgentName } from './agent.config';
 import type { AgentRunContext } from './agent.context';
 import { TimingHandler, type AgentRunLog } from './agent.log';
 import { connectMcp, type McpConnection } from './mcp/mcp.client';
+import { MemoryService } from '../memory/memory.service';
+import { memoryTexts } from './memory-prompt';
 import { createMultiAgentMiddleware } from './multi-agent.middleware';
 import { buildTools } from './tools';
 
@@ -103,6 +105,8 @@ interface LogStepContext {
   routingSummary: string;
   /** Model of an agent's definition, for replies that do not report one. */
   defaultModel: (agent: AgentName) => string;
+  /** Texts of the memories the run's prompts contained; replay injects the same ones. */
+  memories?: string[];
 }
 
 /** Reports one graph step to the chat log: a model reply, or the tool results of a tools node. */
@@ -141,6 +145,7 @@ export function logStep(
       startedAt: timing?.startedAt ?? null,
       durationMs: timing?.durationMs ?? null,
       metadata: {
+        ...(ctx.memories?.length ? { memories: ctx.memories } : {}),
         usage: ai.usage_metadata ?? null,
         stopReason: meta.stop_reason ?? meta.stopReason ?? null,
         ...(agent === 'selector'
@@ -162,6 +167,7 @@ export class AgentService {
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(ChatSession) private readonly sessions: Repository<ChatSession>,
     private readonly agentConfig: AgentConfigService,
+    private readonly memories: MemoryService,
   ) {}
 
   /**
@@ -179,6 +185,12 @@ export class AgentService {
     if (!baseUrl)
       throw new Error('MODEL_BASE_URL is not set (nor model.baseUrl in the Agent Config)');
     if (!apiKey) throw new Error('MODEL_API_KEY is not set (nor model.apiKey in the Agent Config)');
+
+    // Read once, so the whole run sees the same memories even if a tool changes them meanwhile.
+    const promptMemories = !cfg.settings.memory.enabled
+      ? []
+      : (ctx.memories ??
+        (await this.memories.recent(ctx.ownerSub ?? null, cfg.settings.memory.maxMemories)));
 
     const { mcp, release } = await acquireMcp(ctx, cfg.mcpServers);
     try {
@@ -205,6 +217,7 @@ export class AgentService {
         users: this.users,
         sessions: this.sessions,
         config: cfg,
+        memoryStore: this.memories,
       });
       let current = cfg.resolveAgent(ctx.agent);
       const agent = createAgent({
@@ -216,6 +229,7 @@ export class AgentService {
             modelFor,
             localTools,
             mcpByServer: mcp.toolsByServer,
+            memories: promptMemories,
           }),
         ],
       });
@@ -242,6 +256,7 @@ export class AgentService {
         ]),
         selectorTurn: messages.filter((m) => m.type === 'human').length,
         routingSummary: '',
+        memories: memoryTexts(promptMemories),
         defaultModel: (agent) => cfg.definition(agent).model,
       };
 

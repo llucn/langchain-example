@@ -13,6 +13,7 @@ import { ImprovementProposal } from './entities/improvement-proposal.entity';
 import { ChatMessage } from './entities/chat-message.entity';
 import { ChatSession } from './entities/chat-session.entity';
 import { User } from './entities/user.entity';
+import { UserMemory } from './entities/user-memory.entity';
 
 export function buildDataSourceOptions(env: AppEnv): DataSourceOptions {
   const { db } = env;
@@ -43,6 +44,7 @@ export function buildDataSourceOptions(env: AppEnv): DataSourceOptions {
       ImprovementCase,
       ImprovementReplay,
       AppSetting,
+      UserMemory,
     ],
     migrations: [join(__dirname, 'migrations', `*.${ext}`)],
     migrationsRun: db.migrationsRun,

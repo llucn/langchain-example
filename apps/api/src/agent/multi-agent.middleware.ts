@@ -3,6 +3,7 @@ import { createMiddleware } from 'langchain';
 import { z } from 'zod';
 import type { AgentConfigService } from '../agent-config/agent-config.service';
 import { INITIAL_AGENT, type AgentName, type AgentToolRef } from './agent.config';
+import { memoryBlock, type PromptMemory } from './memory-prompt';
 import { selectorTurn } from './tools/select-agent.tool';
 
 /** Agent state added to the run: who is talking now, and what the selector handed over. */
@@ -30,29 +31,38 @@ export function composePrompt(
   agent: AgentName,
   messages: { type: string }[],
   summary: string,
+  memories: PromptMemory[] = [],
 ) {
+  const withMemory = (prompt: string) => {
+    const block = memoryBlock(memories);
+    return block ? `${prompt}\n\n${block}` : prompt;
+  };
   const base: string = config.definition(agent).systemPrompt;
   const maxTurns = config.settings.selector.maxTurns;
   if (agent === 'selector') {
     const turn = selectorTurn(messages as never);
     const last = turn >= maxTurns;
-    return [
+    return withMemory(
+      [
+        base,
+        '',
+        `This is user turn ${turn} of at most ${maxTurns}.` +
+          (last
+            ? ' This is your last turn: call `selectAgent` now, with `other` if the intent is still unclear.'
+            : ''),
+      ].join('\n'),
+    );
+  }
+  if (!summary) return withMemory(base);
+  // A summary only exists in the run that handed over, i.e. the session's first downstream reply.
+  return withMemory(
+    [
       base,
       '',
-      `This is user turn ${turn} of at most ${maxTurns}.` +
-        (last
-          ? ' This is your last turn: call `selectAgent` now, with `other` if the intent is still unclear.'
-          : ''),
-    ].join('\n');
-  }
-  if (!summary) return base;
-  // A summary only exists in the run that handed over, i.e. the session's first downstream reply.
-  return [
-    base,
-    '',
-    `Routing summary from the selector: ${summary}`,
-    "This is your first reply after the hand-over: also call `renameSession` with a short title (at most 30 characters) written in the same language as the user's messages, e.g. an English message gets an English title.",
-  ].join('\n');
+      `Routing summary from the selector: ${summary}`,
+      "This is your first reply after the hand-over: also call `renameSession` with a short title (at most 30 characters) written in the same language as the user's messages, e.g. an English message gets an English title.",
+    ].join('\n'),
+  );
 }
 
 /**
@@ -64,6 +74,8 @@ export const createMultiAgentMiddleware = (deps: {
   modelFor: (agent: AgentName) => unknown;
   localTools: StructuredToolInterface[];
   mcpByServer: Record<string, StructuredToolInterface[]>;
+  /** The user's memories for the prompt; read once per run. */
+  memories?: PromptMemory[];
 }) =>
   createMiddleware({
     name: 'MultiAgent',
@@ -78,6 +90,7 @@ export const createMultiAgentMiddleware = (deps: {
           agent,
           request.messages,
           request.state.routingSummary ?? '',
+          deps.memories,
         ),
         tools: visibleTools(deps.config.definition(agent).tools, deps.localTools, deps.mcpByServer),
       });

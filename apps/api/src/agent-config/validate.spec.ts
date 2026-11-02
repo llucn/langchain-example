@@ -7,7 +7,7 @@ import { readLocalConfig } from './source';
 import { assembleConfig } from './validate';
 
 const id = { hash: 'h', version: 'v', source: 's' };
-const TOOLS = ['renameSession', 'selectAgent'];
+const TOOLS = ['renameSession', 'selectAgent', 'saveMemory', 'forgetMemory'];
 const agent = (extra = '') =>
   `model: m\nmaxTokens: 10\nthinking:\n  type: adaptive\noutputConfig:\n  effort: low\ntools: []\nsystemPrompt: p\n${extra}`;
 const files = (over: Partial<ConfigFiles> = {}): ConfigFiles => ({
@@ -46,7 +46,18 @@ describe('assembleConfig', () => {
       maxContextMessages: 20,
       recursionLimit: 10,
       selector: { maxTurns: 5, minConfidence: 0.5 },
+      memory: { enabled: true, maxMemories: 30 },
     });
+  });
+
+  it('reads the memory settings and rejects a bad maxMemories', () => {
+    const memory = (yml: string) => files({ configYml: `settings:\n  memory:\n${yml}` });
+    expect(
+      assembleConfig(memory('    enabled: false\n    maxMemories: 10\n'), id, TOOLS).settings
+        .memory,
+    ).toEqual({ enabled: false, maxMemories: 10 });
+    for (const bad of ['    maxMemories: 0\n', '    maxMemories: 1.5\n'])
+      expect(() => assembleConfig(memory(bad), id, TOOLS)).toThrow(/maxMemories/);
   });
 
   it('skips MCP servers with an empty URL and keeps the others', () => {

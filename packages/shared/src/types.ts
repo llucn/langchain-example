@@ -344,3 +344,34 @@ export interface SettingsRefs {
   tags: string[];
   defaultBranch?: string;
 }
+
+export type MemorySource = 'agent' | 'user';
+
+/** A long-term note about a user that agents see in later chat sessions. */
+export interface Memory {
+  id: string;
+  content: string;
+  source: MemorySource;
+  /** The chat session it was saved in, when known. */
+  sessionId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A memory in the admin list, with its owner. */
+export interface AdminMemory extends Memory {
+  ownerSub: string | null;
+  /** Email of the owner from the `users` table; null when unknown. */
+  ownerEmail: string | null;
+}
+
+export interface AdminMemoryPage {
+  items: AdminMemory[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SaveMemoryRequest {
+  content: string;
+}
