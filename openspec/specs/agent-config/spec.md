@@ -3,6 +3,7 @@
 ## Purpose
 TBD - created by archiving change add-versioned-agent-config. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: Agent Config source
 The system SHALL load its Agent Config from the location in `CONFIG_SOURCE`, which is either the HTTPS URL of a GitHub repository optionally followed by `//` and a sub-path inside the repository (e.g. `https://github.com/llucn/config.git//langchain-example`), or a path to a local directory. The system SHALL read a GitHub repository through the GitHub REST API (commit lookup and tarball download) and SHALL NOT require the `git` command. For a GitHub source the system SHALL also require `CONFIG_REF`, a branch name, tag name or commit ID. The GitHub API base is derived from the repository host (`https://api.github.com` for `github.com`, `https://<host>/api/v3` otherwise) unless `CONFIG_GITHUB_API_URL` is set. The system SHALL read `config.yml` and the files `agents/<name>.yml` from the sub-path (or the repository root when none is given). The system SHALL reject a source URL that contains embedded credentials, a non-HTTPS URL and a URL that is not a repository URL.
 
@@ -119,11 +120,15 @@ The system SHALL validate the loaded config as a whole and use it only if it is 
 - **THEN** the error lists the problems of both files
 
 ### Requirement: Global settings, MCP servers and model block
-`settings` SHALL be optional with `maxContextMessages` (default 20), `recursionLimit` (default 10), `selector.maxTurns` (default 5) and `selector.minConfidence` (default 0.5). `mcpServers` SHALL map each server name to its URL as a literal string; an empty URL SHALL skip that server with a warning. The optional `model` block (`baseUrl`, `apiKey`) SHALL take precedence over `MODEL_BASE_URL` and `MODEL_API_KEY` when present.
+`settings` SHALL be optional with `maxContextMessages` (default 20), `recursionLimit` (default 10), `selector.maxTurns` (default 5), `selector.minConfidence` (default 0.5), `memory.enabled` (default true) and `memory.maxMemories` (positive integer, default 30). `mcpServers` SHALL map each server name to its URL as a literal string; an empty URL SHALL skip that server with a warning. The optional `model` block (`baseUrl`, `apiKey`) SHALL take precedence over `MODEL_BASE_URL` and `MODEL_API_KEY` when present.
 
 #### Scenario: Defaults
 - **WHEN** `config.yml` has no `settings` block
-- **THEN** the effective settings are 20 context messages, recursion limit 10, selector max turns 5 and minimum confidence 0.5
+- **THEN** the effective settings are 20 context messages, recursion limit 10, selector max turns 5, minimum confidence 0.5, memory enabled and 30 memories
+
+#### Scenario: Memory settings
+- **WHEN** `config.yml` sets `settings.memory.enabled: false` and `maxMemories: 10`
+- **THEN** the effective settings are memory disabled and 10 memories, and a non-integer or non-positive `maxMemories` fails validation
 
 #### Scenario: Literal MCP URL
 - **WHEN** `mcpServers.user` is `'https://d2vyv1n4ekgnt0.cloudfront.net/api/mcp/user'`
