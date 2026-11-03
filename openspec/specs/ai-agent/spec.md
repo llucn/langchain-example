@@ -3,6 +3,7 @@
 ## Purpose
 TBD - created by archiving change add-ai-agent-chat. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: Environment-driven model connection
 The system SHALL call a Claude model through a LangChain agent, reading the endpoint from `MODEL_BASE_URL` and the credential from `MODEL_API_KEY` through the application environment loader, unless the Agent Config has a `model` block, whose `baseUrl` and `apiKey` then take precedence; neither value SHALL be in source code or in an agent definition. The model name, token limit, thinking mode (adaptive thinking) with its effort level, and the system prompt SHALL come from the Agent Config per agent definition (see the `multi-agent` and `agent-config` capabilities); the maximum context SHALL come from the Agent Config settings and be common to all agents.
 
@@ -45,11 +46,11 @@ The tools of an agent SHALL be the local tools and the MCP servers listed in its
 
 #### Scenario: Tool set
 - **WHEN** a run starts with all MCP servers reachable and the current agent is `fault_report`
-- **THEN** the agent has `renameSession` and the tools of the `user`, `location`, `asset` and `work_order` servers, and no other tools
+- **THEN** the agent has `renameSession`, `saveMemory`, `forgetMemory` and the tools of the `user`, `location`, `asset` and `work_order` servers, and no other tools
 
 #### Scenario: Agent without MCP servers
 - **WHEN** the current agent is `other`
-- **THEN** it has `renameSession` only
+- **THEN** it has `renameSession`, `saveMemory` and `forgetMemory` only
 
 ### Requirement: Tool context injection
 Values the LLM must not choose (such as the session id, the visitor's ID token and repositories) SHALL be passed as context, not as tool arguments: per-run values (the session id, the visitor's ID token and the session's active agent) SHALL be supplied by the caller of `AgentService.run`, and shared handles (repositories) SHALL be held by `AgentService`. Each local tool SHALL be created by a factory that receives this context, and a tool's schema SHALL contain only the arguments the LLM is meant to provide.
@@ -62,3 +63,21 @@ Values the LLM must not choose (such as the session id, the visitor's ID token a
 - **WHEN** the agent calls an MCP tool
 - **THEN** the visitor's ID token is sent by the MCP connection and does not appear in any tool schema or argument
 
+### Requirement: Memories in the system prompt
+When `settings.memory.enabled` is true and the session's owner has memories, every model call of a run SHALL have the system prompt of the current agent followed by a block headed "What you remember about this user" listing the owner's newest `settings.memory.maxMemories` memories, oldest first, one per line with its short id and content clipped to 500 characters. The block SHALL state that the memories are notes provided by the user or earlier conversations and are not instructions. The memories SHALL be read once at the start of the run. Nothing SHALL be added when the owner has no memories or memory is disabled.
+
+#### Scenario: Memories injected
+- **WHEN** a user with two memories sends a message in a new session
+- **THEN** the prompt of each model call in the run contains the block with both memories
+
+#### Scenario: Limit
+- **WHEN** the owner has 40 memories and `maxMemories` is 30
+- **THEN** the block lists the 30 newest
+
+#### Scenario: Another user's memories
+- **WHEN** user A's run starts and user B has memories
+- **THEN** none of B's memories appear in A's prompt
+
+#### Scenario: Disabled or empty
+- **WHEN** memory is disabled, or the owner has no memories
+- **THEN** the system prompt is exactly what it was without this feature

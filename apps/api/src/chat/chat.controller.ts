@@ -110,6 +110,7 @@ export class ChatController {
         await this.chat.history(id),
         {
           sessionId: id,
+          ownerSub: ownerOf(req),
           idToken: bearerOf(req),
           agent: session.agent,
           log,

@@ -9,7 +9,7 @@ import {
 import type { ConfigFiles } from './agent-config.types';
 import type { SnapshotRow, SnapshotStore } from './snapshot.store';
 
-const TOOLS = ['renameSession', 'selectAgent'];
+const TOOLS = ['renameSession', 'selectAgent', 'saveMemory', 'forgetMemory'];
 const SOURCE = 'https://github.com/o/r//cfg';
 const agent = (model = 'm') =>
   `model: ${model}\nmaxTokens: 10\nthinking:\n  type: adaptive\noutputConfig:\n  effort: low\ntools: []\nsystemPrompt: p\n`;

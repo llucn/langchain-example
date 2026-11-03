@@ -1,7 +1,7 @@
 import { sampleAgentConfig } from '../../agent-config/sample-config';
 import type { StructuredCaller } from '../evolution.model';
 import { judgeReplay } from './judge';
-import { historyFor, replayTurn, type ReplayRunner } from './replay';
+import { historyFor, memoriesFor, noMemory, replayTurn, type ReplayRunner } from './replay';
 import { UNRECORDED_RESULT } from './recorded-mcp';
 
 const inventory = [
@@ -110,5 +110,59 @@ describe('judgeReplay', () => {
     });
     expect(v).toEqual({ verdict: 'same', reason: 'because' });
     expect(c.n).toBe(1);
+  });
+});
+
+describe('replay and memories', () => {
+  it('injects the recorded memory texts into the run', async () => {
+    let seen: { memories?: { content: string }[] } = {};
+    const run: ReplayRunner = async (_c, _h, ctx) => {
+      seen = ctx;
+      return { answer: 'ok', agent: 'other' };
+    };
+    await replayTurn(run, {
+      config,
+      entryAgent: 'other',
+      history: [{ role: 'user', content: 'hi' }],
+      recorded: [],
+      inventory,
+      memories: ['Works in building 3', 'Prefers Chinese'],
+    });
+    expect(seen.memories?.map((m) => m.content)).toEqual([
+      'Works in building 3',
+      'Prefers Chinese',
+    ]);
+  });
+
+  it('injects none when the log had none', async () => {
+    let seen: { memories?: unknown[] } = {};
+    const run: ReplayRunner = async (_c, _h, ctx) => {
+      seen = ctx;
+      return { answer: 'ok', agent: 'other' };
+    };
+    await replayTurn(run, {
+      config,
+      entryAgent: 'other',
+      history: [{ role: 'user', content: 'hi' }],
+      recorded: [],
+      inventory,
+    });
+    expect(seen.memories).toEqual([]);
+  });
+
+  it('reads the memories of the turn from its first model event that logged them', () => {
+    const events = [
+      { seq: 1, turnId: 'a', metadata: { memories: ['old'] } },
+      { seq: 2, turnId: 'b', metadata: {} },
+      { seq: 3, turnId: 'b', metadata: { memories: ['x', 'y'] } },
+    ];
+    expect(memoriesFor(events, 'b')).toEqual(['x', 'y']);
+    expect(memoriesFor(events, 'c')).toEqual([]);
+  });
+
+  it('uses a memory store that reads and writes nothing', async () => {
+    expect(await noMemory.recent(null, 30)).toEqual([]);
+    expect((await noMemory.save('u', 'x', null)).created).toBe(true);
+    await expect(noMemory.remove('u', 'id')).resolves.toBeUndefined();
   });
 });

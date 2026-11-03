@@ -4,8 +4,9 @@
 Replay reviewed chat turns under the current and a proposed agent config with recorded tool results, and judge the outcome, so improvement proposals can be checked before a pull request is opened.
 
 ## Requirements
+
 ### Requirement: Replay without side effects
-The system SHALL replay a reviewed turn with a given agent config without contacting any MCP server and without persisting a chat session, chat message or chat log. Tools that have side effects on stored state (`renameSession`) SHALL be replaced by recorders that change nothing.
+The system SHALL replay a reviewed turn with a given agent config without contacting any MCP server and without persisting a chat session, chat message or chat log. Tools that have side effects on stored state (`renameSession`, `saveMemory`, `forgetMemory`) SHALL be replaced by recorders that change nothing.
 
 #### Scenario: No MCP traffic
 - **WHEN** a replay runs
@@ -13,7 +14,7 @@ The system SHALL replay a reviewed turn with a given agent config without contac
 
 #### Scenario: Nothing persisted
 - **WHEN** a replay finishes
-- **THEN** no new row exists in `chat_sessions`, `chat_messages`, `chat_log_sessions` or `chat_log_messages`
+- **THEN** no new row exists in `chat_sessions`, `chat_messages`, `chat_log_sessions`, `chat_log_messages` or `user_memories`, and no memory was changed or deleted
 
 ### Requirement: Recorded tool results
 During replay the system SHALL answer an MCP tool call with the result recorded in the session's log (the full, unclipped text) when the tool name and the canonical JSON of the arguments both match, consuming each recorded result at most once in recorded order. A call without a matching recorded result SHALL receive a marked placeholder result stating that no result was recorded and the call was not executed, and SHALL be flagged `unrecorded` in the replay output with its tool name and arguments.
@@ -69,3 +70,14 @@ The system SHALL store each replay (kind `target` or `regression`, old and new o
 #### Scenario: One replay fails
 - **WHEN** the model call of one replay errors
 - **THEN** that case shows the error, the other cases keep their results and the proposal stays `ready`
+
+### Requirement: Recorded memories
+The chat log SHALL record the memory texts injected into a run in the metadata of its model events, and a replay SHALL inject exactly the recorded memories into both the old-config and the proposed-config run, never reading `user_memories`.
+
+#### Scenario: Same memories in both runs
+- **WHEN** a case whose original run had two injected memories is replayed
+- **THEN** both the old and the new run see those two memories in their prompt, even if the user's memories changed since
+
+#### Scenario: Log without memories
+- **WHEN** the logged run had no memory block
+- **THEN** the replayed prompts have none either

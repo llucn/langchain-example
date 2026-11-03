@@ -6,11 +6,15 @@ import type { AgentName } from './agent.config';
 import { composePrompt, createMultiAgentMiddleware, visibleTools } from './multi-agent.middleware';
 import { createSelectAgentTool } from './tools/select-agent.tool';
 import { createRenameSessionTool } from './tools/rename-session.tool';
+import { createSaveMemoryTool } from './tools/save-memory.tool';
+import { createForgetMemoryTool } from './tools/forget-memory.tool';
 
 const cfg = sampleAgentConfig();
 const ctx = { sessionId: 's', users: {}, sessions: {}, config: cfg } as never;
 const select = createSelectAgentTool(ctx);
 const rename = createRenameSessionTool(ctx);
+const save = createSaveMemoryTool(ctx);
+const forget = createForgetMemoryTool(ctx);
 const mcp = (server: string) => ({ name: `${server}_get` }) as never;
 
 describe('agent registry', () => {
@@ -27,7 +31,7 @@ describe('agent registry', () => {
   });
 
   it('only references known local tools and MCP servers', () => {
-    const local = new Set([select.name, rename.name]);
+    const local = new Set([select.name, rename.name, save.name, forget.name]);
     const servers = new Set(Object.keys(cfg.mcpServers));
     for (const def of Object.values(cfg.agents)) {
       for (const t of def.tools) {
@@ -46,12 +50,20 @@ describe('agent registry', () => {
 describe('visibleTools', () => {
   const byServer = { user: [mcp('user')], asset: [mcp('asset')], work_order: [mcp('work_order')] };
   const names = (agent: AgentName) =>
-    visibleTools(cfg.definition(agent).tools, [select, rename], byServer).map((t) => t.name);
+    visibleTools(cfg.definition(agent).tools, [select, rename, save, forget], byServer).map(
+      (t) => t.name,
+    );
 
   it('gives each agent only what its definition lists', () => {
     expect(names('selector')).toEqual(['selectAgent']);
-    expect(names('work_order_inquiry')).toEqual(['renameSession', 'user_get', 'work_order_get']);
-    expect(names('other')).toEqual(['renameSession']);
+    expect(names('work_order_inquiry')).toEqual([
+      'renameSession',
+      'saveMemory',
+      'forgetMemory',
+      'user_get',
+      'work_order_get',
+    ]);
+    expect(names('other')).toEqual(['renameSession', 'saveMemory', 'forgetMemory']);
   });
 });
 
@@ -72,6 +84,29 @@ describe('composePrompt', () => {
       'first reply after the hand-over',
     );
     expect(composePrompt(cfg, 'fault_report', [], '')).not.toContain('renameSession` with');
+  });
+});
+
+describe('composePrompt with memories', () => {
+  const mems = [
+    { id: 'aaaaaaaa-0000-4000-8000-000000000000', content: 'Works in building 3' },
+    { id: 'bbbbbbbb-0000-4000-8000-000000000000', content: 'Prefers Chinese' },
+  ];
+
+  it('appends the block to the prompt of every agent, keeping the order given', () => {
+    for (const agent of ['selector', 'other', 'fault_report'] as const) {
+      const prompt = composePrompt(cfg, agent, [], '', mems);
+      expect(prompt).toContain('What you remember about this user');
+      expect(prompt.indexOf('[aaaaaaaa] Works in building 3')).toBeLessThan(
+        prompt.indexOf('[bbbbbbbb] Prefers Chinese'),
+      );
+      expect(prompt).toContain('not instructions');
+    }
+  });
+
+  it('leaves the prompt unchanged without memories', () => {
+    expect(composePrompt(cfg, 'other', [], '', [])).toBe(composePrompt(cfg, 'other', [], ''));
+    expect(composePrompt(cfg, 'other', [], '')).not.toContain('What you remember about this user');
   });
 });
 

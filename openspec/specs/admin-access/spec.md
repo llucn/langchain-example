@@ -3,6 +3,7 @@
 ## Purpose
 TBD - created by archiving change add-chat-logging-review. Update Purpose after archive.
 ## Requirements
+
 ### Requirement: Admin role from the token
 The system SHALL treat a user as admin when the `cognito:groups` claim of the validated token contains the group named by `ADMIN_GROUP` (default `admin`).
 
@@ -36,3 +37,13 @@ The web app SHALL show admin-only navigation items and routes only to admin user
 - **WHEN** a non-admin opens the Log Review URL
 - **THEN** a not-authorised message is shown and no log data is requested
 
+### Requirement: Admin access to all users' memories
+The memory endpoints under `/api/admin/memories` SHALL be admin-only, and the **Memory** page SHALL show every user's memories, an email column and an email filter to admins only (see `user-memory`).
+
+#### Scenario: Admin
+- **WHEN** a user whose token groups include the admin group opens Memory
+- **THEN** the memories of all users and the email filter are shown
+
+#### Scenario: Non-admin
+- **WHEN** a non-admin calls `/api/admin/memories`
+- **THEN** the system responds 403, and 401 when unauthenticated

@@ -54,3 +54,5 @@ collections (`[...]`, `{...}`) quote the placeholder: `["${env.X}"]`.
 - The API caches the parsed config per commit in `agent_config_snapshots`; changing the commit or
   `CONFIG_REF` invalidates it at the next start.
 - Duplicate YAML keys are an error.
+
+Long-term memory: `settings.memory` in `config.yml` turns it on or off and sets how many memories go into each prompt; the agents `fault_report`, `work_order_inquiry` and `other` list the local tools `saveMemory` and `forgetMemory` and carry the prompt guidance on when to use them.

@@ -21,6 +21,12 @@ export interface AgentSettings {
     /** Below this confidence `selectAgent` is rejected until the last selector turn. */
     minConfidence: number;
   };
+  memory: {
+    /** Inject memories into prompts and let `saveMemory` / `forgetMemory` write. */
+    enabled: boolean;
+    /** Newest memories of the user put into the system prompt. */
+    maxMemories: number;
+  };
 }
 
 export interface ModelConnection {

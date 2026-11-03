@@ -98,7 +98,7 @@ describe('tool registry', () => {
       sessionId: 's',
       config: sampleAgentConfig(),
     } as never).map((t) => t.name);
-    expect(names).toEqual(['renameSession', 'selectAgent']);
+    expect(names).toEqual(['renameSession', 'selectAgent', 'saveMemory', 'forgetMemory']);
     expect(names).toEqual([...LOCAL_TOOL_NAMES]);
   });
 });

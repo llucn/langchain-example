@@ -55,3 +55,8 @@ export const REPLAY_KINDS = ['target', 'regression'] as const;
 
 /** Most Bad reviews one generation takes. */
 export const MAX_IMPROVEMENT_REVIEWS = 10;
+
+/** Characters of one memory (longer ones are rejected). */
+export const MEMORY_MAX_LENGTH = 500;
+/** Memories one user may have; `saveMemory` deletes the oldest when it is reached. */
+export const MEMORY_MAX_PER_USER = 200;

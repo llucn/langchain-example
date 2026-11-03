@@ -1,7 +1,15 @@
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
 import { AgentConfigService } from '../agent-config/agent-config.service';
 import { sampleAgentConfig } from '../agent-config/sample-config';
-import { acquireMcp, AgentService, foldStep, modelConnection, trimHistory } from './agent.service';
+import {
+  acquireMcp,
+  AgentService,
+  foldStep,
+  logStep,
+  modelConnection,
+  trimHistory,
+} from './agent.service';
+import { TimingHandler } from './agent.log';
 
 describe('trimHistory', () => {
   it('keeps only the most recent messages', () => {
@@ -18,7 +26,7 @@ describe('trimHistory', () => {
 
 describe('AgentService config', () => {
   const svc = (model: { baseUrl?: string; apiKey?: string }, config = sampleAgentConfig()) =>
-    new AgentService({ model } as never, {} as never, {} as never, config);
+    new AgentService({ model } as never, {} as never, {} as never, config, {} as never);
 
   it('names the missing variable', async () => {
     await expect(svc({ apiKey: 'k' }).run([], { sessionId: 's' }, () => {})).rejects.toThrow(
@@ -92,5 +100,35 @@ describe('acquireMcp', () => {
     await release();
     expect(mcp).toBe(opened);
     expect(opened.close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('logStep memories', () => {
+  const run = (memories?: string[]) => {
+    const events: { metadata: Record<string, unknown> }[] = [];
+    logStep(
+      { onLlm: (e) => events.push(e), onToolResult: () => undefined },
+      'model',
+      'other',
+      [new AIMessage('hi')],
+      {
+        timing: new TimingHandler(),
+        toolSource: new Map(),
+        selectorTurn: 1,
+        routingSummary: '',
+        defaultModel: () => 'm',
+        memories,
+      },
+    );
+    return events[0].metadata;
+  };
+
+  it('records the injected memory texts in the model event metadata', () => {
+    expect(run(['Works in building 3']).memories).toEqual(['Works in building 3']);
+  });
+
+  it('records nothing when the prompt had no memories', () => {
+    expect(run([])).not.toHaveProperty('memories');
+    expect(run()).not.toHaveProperty('memories');
   });
 });
